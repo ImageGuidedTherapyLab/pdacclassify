@@ -71,7 +71,7 @@ select ws.*,dn.seriesDescription PreDescription , an.seriesDescription ArtDescri
 rtrim(di.Filename, replace(di.Filename, '/', '')) PreFilename,
 rtrim(ai.Filename, replace(ai.Filename, '/', '')) ArtFilename,
 rtrim(pi.Filename, replace(pi.Filename, '/', '')) VenFilename,
-rtrim(ti.Filename, replace(ti.Filename, '/', '')) TruthFilename
+                           ti.Filename            TruthFilename
 from widestudy ws 
 join sl.images  di on di.SeriesInstanceUID= ws.Pre
 join sl.images  ai on ai.SeriesInstanceUID= ws.Art
