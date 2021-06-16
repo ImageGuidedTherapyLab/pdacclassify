@@ -47,12 +47,13 @@ join sl.studies  sd on sd.StudyInstanceUID = im.StudyInstanceUID
 join sl.patients pt on sd.PatientsUID = pt.UID;
 
 create table widestudy  as
-select fg.PatientsUID PatientsUID,fg.PatientID PatientID,fg.StudyInstanceUID StudyInstanceUID,
+select fg.PatientsUID PatientsUID,fg.PatientID PatientID,ed.DeltaScore,fg.StudyInstanceUID StudyInstanceUID,
             max(CASE WHEN ImageType = 'Pre' THEN fg.SeriesInstanceUID       ELSE NULL END)  Pre,
             max(CASE WHEN ImageType = 'Art' THEN fg.SeriesInstanceUID       ELSE NULL END)  Art,
             max(CASE WHEN ImageType = 'Ven' THEN fg.SeriesInstanceUID       ELSE NULL END)  Ven,
             max(CASE WHEN ImageType = 'Truth' THEN fg.SeriesInstanceUID     ELSE NULL END)  Truth
 from flagdata  fg
+join edrn      ed on   ed.MRN=fg.PatientID
 GROUP BY    fg.StudyInstanceUID;
 -- select * from widestudy;
 
