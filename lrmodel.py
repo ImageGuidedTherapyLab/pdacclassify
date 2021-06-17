@@ -1034,12 +1034,11 @@ elif (options.setuptestset):
       for idtest in test_set:
          # write target
          imageprereq   = '$(TRAININGROOT)/%s' % databaseinfo[idtest]['image']
-         maskprereq    = '$(TRAININGROOT)/bcmlirads/%s-mask.nii.gz' % databaseinfo[idtest]['uid']
-         lesionprereq  = '$(TRAININGROOT)/bcmlirads/%s-lesionmask.nii.gz' % databaseinfo[idtest]['uid']
-         segmaketarget = '$(TRAININGROOT)/bcmdata/%s/$(DATABASEID)/lirads.nii.gz' % databaseinfo[idtest]['uid']
+         lesionprereq  = '$(TRAININGROOT)/Processed/%s/lesionmask.nii.gz' % databaseinfo[idtest]['uid']
+         segmaketarget = '$(TRAININGROOT)/Processed/%s/$(DATABASEID)/lirads.nii.gz' % databaseinfo[idtest]['uid']
          uiddictionary[iii].append(databaseinfo[idtest]['uid'] )
-         cvtestcmd = "python ./applymodel.py --predictimage=$< --modelpath=$(word 3, $^) --maskimage=$(word 2, $^) --lesionimage=$(word 4, $^) --segmentation=$@"  
-         fileHandle.write('%s: %s %s %s %s\n' % (segmaketarget ,imageprereq,maskprereq,    modelprereq,lesionprereq    ) )
+         cvtestcmd = "python ./applymodel.py --predictimage=$< --modelpath=$(word 2, $^) --lesionimage=$(word 3, $^) --segmentation=$@"  
+         fileHandle.write('%s: %s  %s %s\n' % (segmaketarget ,imageprereq,modelprereq,lesionprereq    ) )
          fileHandle.write('\t%s\n' % cvtestcmd)
 
   # build job list
