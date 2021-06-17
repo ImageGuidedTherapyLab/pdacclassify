@@ -74,7 +74,7 @@ parser.add_option( "--validationbatch",
                   type="int", dest="validationbatch", default=20,
                   help="setup info", metavar="int")
 parser.add_option( "--kfolds",
-                  type="int", dest="kfolds", default=5,
+                  type="int", dest="kfolds", default=10,
                   help="setup info", metavar="int")
 parser.add_option( "--idfold",
                   type="int", dest="idfold", default=0,
@@ -323,13 +323,13 @@ def  TrainMyUnet():
 
   # FIXME: HACK  overwrite kfold , setup loocv
   databaseinfo = GetDataDictionary()
-  loocvidfull = [databaseinfo [mykey]['loocv'] for mykey in databaseinfo.keys()]
-  uniqueloocv = list(set(loocvidfull))
-  options.kfolds = len(uniqueloocv )
+  #loocvidfull = [databaseinfo [mykey]['loocv'] for mykey in databaseinfo.keys()]
+  #uniqueloocv = list(set(loocvidfull))
+  #options.kfolds = len(uniqueloocv )
 
   #setup kfolds
-  (train_validation_index,test_index) = GetSetupLOOCV(loocvidfull,options.idfold,dataidsfull)
-  #(train_validation_index,test_index) = GetSetupKfolds(options.kfolds,options.idfold,dataidsfull)
+  #(train_validation_index,test_index) = GetSetupLOOCV(loocvidfull,options.idfold,dataidsfull)
+  (train_validation_index,test_index) = GetSetupKfolds(options.kfolds,options.idfold,dataidsfull)
 
   #break into independent training and validation sets
   studydict = {'run_a':.9, 'run_b':.8, 'run_c':.7 }
@@ -1013,10 +1013,10 @@ elif (options.setuptestset):
   # get id from setupfiles
   databaseinfo = GetDataDictionary()
   dataidsfull = list(databaseinfo.keys()) 
-  loocvidfull = [databaseinfo [mykey]['loocv'] for mykey in databaseinfo.keys()]
-  uniqueloocv = list(set(loocvidfull))
+  #loocvidfull = [databaseinfo [mykey]['loocv'] for mykey in databaseinfo.keys()]
+  #uniqueloocv = list(set(loocvidfull))
   # FIXME: HACK  overwrite kfold
-  options.kfolds = len(uniqueloocv )
+  #options.kfolds = len(uniqueloocv )
 
   uiddictionary = {}
   modeltargetlist = []
@@ -1025,8 +1025,8 @@ elif (options.setuptestset):
   # open makefile
   with open(makefilename ,'w') as fileHandle:
     for iii in range(options.kfolds):
-      (train_set,test_set) = GetSetupLOOCV(loocvidfull,iii,dataidsfull)
-      #(train_set,test_set) = GetSetupKfolds(options.kfolds,iii,dataidsfull)
+      #(train_set,test_set) = GetSetupLOOCV(loocvidfull,iii,dataidsfull)
+      (train_set,test_set) = GetSetupKfolds(options.kfolds,iii,dataidsfull)
       uidoutputdir= _globaldirectorytemplate % (options.databaseid,options.trainingloss+ _xstr(options.sampleweight),options.trainingmodel,options.trainingsolver,options.trainingresample,options.trainingid,options.trainingbatch,options.validationbatch,options.kfolds,iii)
       modelprereq    = '%s/tumormodelunet.json' % uidoutputdir
       fileHandle.write('%s: \n' % modelprereq  )
