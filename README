@@ -1,11 +1,10 @@
-
 TF Usage
 =====
 python lrmodel.py --databaseid=lrmda --initialize
 python lrmodel.py --databaseid=lrmda --setuptestset
 python lrmodel.py --databaseid=lrmda --builddb
-make -f lrbcm256kfold010.makefile models
-tensorboard  --logdir=./lrbcmlog/  --port=6010
+make -f lrmda256kfold010.makefile models
+tensorboard  --logdir=./lrmdalog/  --port=6010
 make -f lrstatistics.makefile labels
 make -j 8 -B -f lrstatistics.makefile lstat
 cat qastats/*/lstat.csv > qastats/lstat.csv

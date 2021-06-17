@@ -295,8 +295,7 @@ class DataGenerator(keras.utils.Sequence):
         y_train_one_hot = to_categorical(by_train , num_classes=self.n_classes).reshape((by_train.shape)+(self.n_classes,))
 
         # Input both liver and lesions mask
-        liver  = np.max(y_train_one_hot[:,:,:,1:], axis=3)
-        lesion = np.max(y_train_one_hot[:,:,:,3:], axis=3)
+        lesion  = np.max(y_train_one_hot[:,:,:,1:], axis=3)
 
         #FIXME - is this needed ? 
         #y_train_one_hot[:,:,:,1]=liver
@@ -305,9 +304,8 @@ class DataGenerator(keras.utils.Sequence):
         #y_train_one_hot[:,:,:,5]=lesion
         
         # vectorize input assume that liver mask is given
-        x_train_vector = np.repeat(bx_train,3,axis=3)
-        x_train_vector[:,:,:,1]=liver
-        x_train_vector[:,:,:,2]=lesion
+        x_train_vector = np.repeat(bx_train,2,axis=3)
+        x_train_vector[:,:,:,1]=lesion
 
         ##print("X - Shape before: {}; Shape after: {}".format(bx_train.shape, x_train_vector.shape))
         ##print("Y - Shape before: {}; Shape after: {}".format(by_train.shape, y_train_one_hot.shape))
@@ -482,9 +480,9 @@ def  TrainMyUnet():
       # FIXME - HACK image size
       crop_size = options.trainingresample
       if _padding == 'valid':
-          input_layer = Input(shape=(crop_size+40,crop_size+40,3))
+          input_layer = Input(shape=(crop_size+40,crop_size+40,2))
       elif _padding == 'same':
-          input_layer = Input(shape=(crop_size,crop_size,3))
+          input_layer = Input(shape=(crop_size,crop_size,2))
   
       x0 = addConvBNSequential(input_layer, filters=_filters, kernel_size=_kernel_size, padding=_padding, activation=_activation, kernel_regularizer=_kernel_regularizer, batch_norm=_batch_norm)
       x0 = addConvBNSequential(x0,          filters=_filters, kernel_size=_kernel_size, padding=_padding, activation=_activation, kernel_regularizer=_kernel_regularizer, batch_norm=_batch_norm)
