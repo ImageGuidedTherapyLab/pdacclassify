@@ -16,33 +16,16 @@ print( unique(mydataset$ptid) )
 print( 'lesion summary' )
 print( table(mydataset$truth))
 
-# subset data
-newdata <- subset(mydataset , truth != 4 )
-table(newdata$truth)
 
 # The `pROC' package implements various AUC functions.
 # Calculate the Area Under the Curve (AUC).
-myroc3a     = pROC::roc( response = ifelse(mydataset$truth == 3,1,0), predictor = mydataset$predict3  , curve=T   )
-myroc5a     = pROC::roc( response = ifelse(mydataset$truth == 5,1,0), predictor = mydataset$predict5  , curve=T   )
-myroc5b     = pROC::roc( response = ifelse(mydataset$truth == 5,1,0), predictor = mydataset$countlr5  / mydataset$compsize, curve=T   )
-myrocepm3   = pROC::roc( response = ifelse(mydataset$truth == 3,1,0), predictor = mydataset$EPM  , curve=T   )
-myrocepm5   = pROC::roc( response = ifelse(mydataset$truth == 5,1,0), predictor = mydataset$EPM  , curve=T   )
-myrocepmsub = pROC::roc( response = newdata$truth , predictor = newdata$EPM  , curve=T   )
-myrocsuba   = pROC::roc( response = newdata$truth , predictor = newdata$predict3 , curve=T   )
-myrocsubb   = pROC::roc( response = newdata$truth , predictor = newdata$predict5 , curve=T   )
-
-cbind(mydataset$InstanceUID,mydataset$LabelID, mydataset$countlr5, mydataset$compsize, mydataset$countlr5  / mydataset$compsize,mydataset$truth,ifelse(mydataset$truth == 5,1,0))
-# Calculate the AUC Confidence Interval.
-
-pROC::ci.auc( ifelse(mydataset$truth == 5,1,0), mydataset$predict5  )
-pROC::ci.auc( ifelse(mydataset$truth == 5,1,0), mydataset$countlr5  / mydataset$compsize)
+myroca     = pROC::roc( response = mydataset$truth , predictor = mydataset$predict1  , curve=T   )
+myrocb     = pROC::roc( response = mydataset$truth , predictor = mydataset$predict2  , curve=T   )
+myrocc     = pROC::roc( response = mydataset$truth , predictor = mydataset$countlr1  / mydataset$compsize, curve=T   )
+myrocart   = pROC::roc( response = mydataset$truth , predictor = mydataset$ART       , curve=T   )
 
 
-png('myroc3a.png');     plot(myroc3a    ,main=sprintf("ROC curve NN LR3/LR4&LR5 \nAUC=%0.3f", myroc3a$auc)); dev.off()
-png('myroc5a.png');     plot(myroc5a    ,main=sprintf("ROC curve NN LR5/LR3&LR4 \nAUC=%0.3f", myroc5a$auc)); dev.off()
-png('myroc5b.png');     plot(myroc5b    ,main=sprintf("ROC curve bLR5/not-LR5   \nAUC=%0.3f", myroc5b$auc)); dev.off()
-png('myrocepm5.png');   plot(myrocepm5  ,main=sprintf("ROC curve EPM LR5/LR3&LR4\nAUC=%0.3f", myrocepm5$auc)); dev.off()
-png('myrocepm3.png');   plot(myrocepm3  ,main=sprintf("ROC curve EPM LR3/LR4&LR5\nAUC=%0.3f", myrocepm3$auc)); dev.off()
-png('myrocepmsub.png'); plot(myrocepmsub,main=sprintf("ROC curve EPM LR3/LR5    \nAUC=%0.3f", myrocepmsub$auc)); dev.off()
-png('myrocsuba.png');   plot(myrocsuba  ,main=sprintf("ROC curve NN  LR3/LR5    \nAUC=%0.3f", myrocsuba$auc)); dev.off()
-png('myrocsubb.png');   plot(myrocsubb  ,main=sprintf("ROC curve NN  LR3/LR5    \nAUC=%0.3f", myrocsubb$auc)); dev.off()
+png('myroca.png');     plot(myroca    ,main=sprintf("ROC curve NN a \nAUC=%0.3f", myroca$auc  )); dev.off()
+png('myrocb.png');     plot(myrocb    ,main=sprintf("ROC curve NN b \nAUC=%0.3f", myrocb$auc  )); dev.off()
+png('myrocc.png');     plot(myrocc    ,main=sprintf("ROC curve NN c \nAUC=%0.3f", myrocc$auc  )); dev.off()
+png('myrocart.png');   plot(myrocart  ,main=sprintf("ROC curve ART  \nAUC=%0.3f", myrocart$auc)); dev.off()
