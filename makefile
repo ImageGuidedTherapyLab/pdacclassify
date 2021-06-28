@@ -10,6 +10,7 @@ CONTRASTLIST = Pre Art Ven
 
 raw: $(foreach idc,$(CONTRASTLIST),$(addprefix Processed/,$(addsuffix /$(idc).raw.nii.gz,$(LISTUID)))) 
 truth: $(addprefix Processed/,$(addsuffix /Truth.raw.nii.gz,$(LISTUID)))
+multiphase: $(addprefix Processed/,$(addsuffix /multiphase.nii.gz,$(LISTUID)))
 viewraw: $(addprefix Processed/,$(addsuffix /viewraw,$(MRILIST)))  
 
 Processed/%/Pre.raw.nii.gz:
@@ -26,3 +27,5 @@ Processed/%/Truth.raw.nii.gz: Processed/%/Art.raw.nii.gz
 	if [  $(word $(shell sed 1d dicom/wideformat.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "High" ] ; then c3d -verbose $@ -replace 1 2 -o $@  ; fi
 	c3d -verbose -interpolation 0 $< $@ -reslice-identity -o $@  -binarize -o $(@D)/lesionmask.nii.gz
 	echo vglrun itksnap -g $< -s $@
+Processed/%/multiphase.nii.gz: Processed/%/Pre.raw.nii.gz Processed/%/Art.raw.nii.gz  Processed/%/Ven.raw.nii.gz 
+	c3d -verbose $<  -info $(word 2,$^) -info   $(word 3,$^) -info -omc $@

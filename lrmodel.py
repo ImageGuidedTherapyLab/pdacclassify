@@ -85,7 +85,8 @@ parser.add_option("--numepochs",
 (options, args) = parser.parse_args()
 
 # current datasets
-trainingdictionary = {'lrmda':{'dbfile':'dicom/lrtraining.csv','rootlocation':'./'} }
+trainingdictionary = {'lrmda':{'dbfile':'dicom/lrtraining.csv','rootlocation':'./'} ,
+                      'phmda':{'dbfile':'dicom/lrtrainingphase.csv','rootlocation':'./'} }
 
 # options dependency 
 options.dbfile       = trainingdictionary[options.databaseid]['dbfile']
@@ -229,7 +230,7 @@ CREATE TABLE overlap(
    PRIMARY KEY (InstanceUID,FirstImage,SecondImage,LabelID) );
 """
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1" 
+os.environ["CUDA_VISIBLE_DEVICES"]="0" 
 import keras
 import tensorflow as tf
 print("keras version: ",keras.__version__, 'TF version:',tf.__version__)
@@ -933,7 +934,10 @@ elif (options.builddb):
   import skimage.transform
 
   # create  custom data frame database type
-  mydatabasetype = [('dataid', int), ('axialliverbounds',bool),  ('imagedata','(%d,%d)int16' %(options.trainingresample,options.trainingresample)),('truthdata','(%d,%d)uint8' % (options.trainingresample,options.trainingresample))]
+  if (options.databaseid == 'phmda'):
+    mydatabasetype = [('dataid', int), ('axialliverbounds',bool),  ('imagedatapre','(%d,%d)int16' %(options.trainingresample,options.trainingresample)),('imagedataart','(%d,%d)int16' %(options.trainingresample,options.trainingresample)),('imagedataven','(%d,%d)int16' %(options.trainingresample,options.trainingresample)),('truthdata','(%d,%d)uint8' % (options.trainingresample,options.trainingresample))]
+  else:
+    mydatabasetype = [('dataid', int), ('axialliverbounds',bool),  ('imagedata','(%d,%d)int16' %(options.trainingresample,options.trainingresample)),('truthdata','(%d,%d)uint8' % (options.trainingresample,options.trainingresample))]
 
   # initialize empty dataframe
   numpydatabase = np.empty(0, dtype=mydatabasetype  )
@@ -953,8 +957,16 @@ elif (options.builddb):
     numpyimage= imagedata.get_data().astype(IMG_DTYPE )
     # error check
     nslice = numpyimage.shape[2]
-    print("resizing image")
-    resimage=skimage.transform.resize(numpyimage,(options.trainingresample,options.trainingresample,nslice),order=0,mode='constant',preserve_range=True).astype(IMG_DTYPE)
+    if (imagedata.ndim == 3):
+      print("resizing single image")
+      resimage=skimage.transform.resize(numpyimage,(options.trainingresample,options.trainingresample,nslice),order=0,mode='constant',preserve_range=True).astype(IMG_DTYPE)
+    elif (imagedata.ndim == 5):
+      print("resizing multicomp image")
+      resimagepre=skimage.transform.resize(numpyimage[:,:,:,0,0],(options.trainingresample,options.trainingresample,nslice),order=0,mode='constant',preserve_range=True).astype(IMG_DTYPE)
+      resimageart=skimage.transform.resize(numpyimage[:,:,:,0,1],(options.trainingresample,options.trainingresample,nslice),order=0,mode='constant',preserve_range=True).astype(IMG_DTYPE)
+      resimageven=skimage.transform.resize(numpyimage[:,:,:,0,2],(options.trainingresample,options.trainingresample,nslice),order=0,mode='constant',preserve_range=True).astype(IMG_DTYPE)
+    else:
+      raise("data comp error")
 
     # load nifti file
     truthdata = nib.load(truthlocation )
@@ -965,11 +977,13 @@ elif (options.builddb):
     restruth=skimage.transform.resize(numpytruth,(options.trainingresample,options.trainingresample,nslice),order=0,mode='constant',preserve_range=True).astype(SEG_DTYPE)
 
     # bounding box for each label
-    if( np.max(restruth) ==1 ) :
+    if( np.max(restruth)   ==1 ) :
       (liverboundingbox,)  = ndimage.find_objects(restruth)
-    else:
+    elif( np.max(restruth) ==2 ) :
       boundingboxes = ndimage.find_objects(restruth)
-      liverboundingbox = boundingboxes[0]
+      liverboundingbox = boundingboxes[1]
+    else:
+      raise("data label error")
 
     print(idrow, imagelocation,truthlocation, nslice, liverboundingbox[2].stop - liverboundingbox[2].start )
 
@@ -988,7 +1002,12 @@ elif (options.builddb):
       axialliverbounds                              = np.repeat(False,nslice  ) 
       axialliverbounds[liverboundingbox[2]]         = True
       datamatrix ['axialliverbounds'   ]            = axialliverbounds
-      datamatrix ['imagedata']                      = resimage.transpose(2,1,0) 
+      if (imagedata.ndim == 3):
+        datamatrix ['imagedata']                      = resimage.transpose(2,1,0) 
+      elif (imagedata.ndim == 5):
+        datamatrix ['imagedatapre']                   = resimagepre.transpose(2,1,0) 
+        datamatrix ['imagedataart']                   = resimageart.transpose(2,1,0) 
+        datamatrix ['imagedataven']                   = resimageven.transpose(2,1,0) 
       datamatrix ['truthdata']                      = restruth.transpose(2,1,0)  
       numpydatabase = np.hstack((numpydatabase,datamatrix))
       # count total slice for QA
