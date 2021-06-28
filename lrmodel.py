@@ -251,13 +251,15 @@ keras.backend.tensorflow_backend.set_session(tf.Session(config = config))
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, images, labels, batch_size=32, dim=(32,32,32), 
+    def __init__(self, preimages, artimages,venimages,labels, batch_size=32, dim=(32,32,32), 
                  n_classes=10):
         'Initialization'
         self.dim = dim
         self.batch_size = batch_size
         self.labels = labels
-        self.images = images
+        self.preimages = preimages
+        self.artimages = artimages
+        self.venimages = venimages
         #self.n_channels = n_channels
         self.n_classes = n_classes
         #self.shuffle = shuffle
@@ -265,7 +267,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.images) / self.batch_size))
+        return int(np.floor(len(self.preimages) / self.batch_size))
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -291,7 +293,7 @@ class DataGenerator(keras.utils.Sequence):
         from keras.utils.np_utils import to_categorical
         
         # Convert to uint8 data and find out how many labels.
-        bx_train = self.images[indexes,:,:,np.newaxis]
+        bprex_train = self.preimages[indexes,:,:,np.newaxis]
         by_train = self.labels[indexes]
         y_train_one_hot = to_categorical(by_train , num_classes=self.n_classes).reshape((by_train.shape)+(self.n_classes,))
 
@@ -305,8 +307,10 @@ class DataGenerator(keras.utils.Sequence):
         #y_train_one_hot[:,:,:,5]=lesion
         
         # vectorize input assume that liver mask is given
-        x_train_vector = np.repeat(bx_train,2,axis=3)
-        x_train_vector[:,:,:,1]=lesion
+        x_train_vector = np.repeat(bprex_train,4,axis=3)
+        x_train_vector[:,:,:,1]=self.artimages[indexes,:,:]
+        x_train_vector[:,:,:,2]=self.venimages[indexes,:,:]
+        x_train_vector[:,:,:,3]=lesion
 
         ##print("X - Shape before: {}; Shape after: {}".format(bx_train.shape, x_train_vector.shape))
         ##print("Y - Shape before: {}; Shape after: {}".format(by_train.shape, y_train_one_hot.shape))
@@ -377,7 +381,12 @@ def  TrainMyUnet():
   print("nslice: ",totnslice ," split: " ,slicesplit )
 
   # FIXME - Verify stacking indicies
-  x_train=np.vstack((trainingsubset['imagedata'],validationsubset['imagedata']))
+  if (options.databaseid == 'phmda'):
+    xpre_train=np.vstack((trainingsubset['imagedatapre'],validationsubset['imagedatapre']))
+    xart_train=np.vstack((trainingsubset['imagedataart'],validationsubset['imagedataart']))
+    xven_train=np.vstack((trainingsubset['imagedataven'],validationsubset['imagedataven']))
+  else:
+    x_train=np.vstack((trainingsubset['imagedata'],validationsubset['imagedata']))
   y_train=np.vstack((trainingsubset['truthdata'],validationsubset['truthdata']))
   TRAINING_SLICES      = slice(0,slicesplit)
   VALIDATION_SLICES    = slice(slicesplit,totnslice)
@@ -421,8 +430,12 @@ def  TrainMyUnet():
 
   t_max=np.max(y_train)
   print("Range of values: [0, {}]".format(t_max))
-  train_iter = DataGenerator(x_train[TRAINING_SLICES]  ,y_train[TRAINING_SLICES]   , batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
-  valid_iter = DataGenerator(x_train[VALIDATION_SLICES],y_train[VALIDATION_SLICES ], batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
+  if (options.databaseid == 'phmda'):
+    train_iter = DataGenerator(xpre_train[TRAINING_SLICES]  ,xart_train[TRAINING_SLICES]  ,xven_train[TRAINING_SLICES]  ,y_train[TRAINING_SLICES]   , batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
+    valid_iter = DataGenerator(xpre_train[VALIDATION_SLICES],xart_train[VALIDATION_SLICES],xven_train[VALIDATION_SLICES],y_train[VALIDATION_SLICES ], batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
+  else: # FIXME
+    train_iter = DataGenerator(x_train[TRAINING_SLICES]  ,y_train[TRAINING_SLICES]   , batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
+    valid_iter = DataGenerator(x_train[VALIDATION_SLICES],y_train[VALIDATION_SLICES ], batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
 
   from keras.layers import InputLayer, Conv2D, MaxPool2D, Flatten, Dense, UpSampling2D, LocallyConnected2D
   from keras.models import Model, Sequential
@@ -481,9 +494,9 @@ def  TrainMyUnet():
       # FIXME - HACK image size
       crop_size = options.trainingresample
       if _padding == 'valid':
-          input_layer = Input(shape=(crop_size+40,crop_size+40,2))
+          input_layer = Input(shape=(crop_size+40,crop_size+40,4))
       elif _padding == 'same':
-          input_layer = Input(shape=(crop_size,crop_size,2))
+          input_layer = Input(shape=(crop_size,crop_size,4))
   
       x0 = addConvBNSequential(input_layer, filters=_filters, kernel_size=_kernel_size, padding=_padding, activation=_activation, kernel_regularizer=_kernel_regularizer, batch_norm=_batch_norm)
       x0 = addConvBNSequential(x0,          filters=_filters, kernel_size=_kernel_size, padding=_padding, activation=_activation, kernel_regularizer=_kernel_regularizer, batch_norm=_batch_norm)
@@ -880,7 +893,10 @@ def  TrainMyUnet():
   ##train_gen = ImageDataGenerator()
   ##valid_gen = ImageDataGenerator()
   #steps_per_epoch = (len(x_train[TRAINING_SLICES,...]) // options.trainingbatch) // hvd.size() 
-  steps_per_epoch = len(x_train) // options.trainingbatch
+  if (options.databaseid == 'phmda'):
+    steps_per_epoch = len(xpre_train) // options.trainingbatch
+  else:
+    steps_per_epoch = len(x_train) // options.trainingbatch
   ## config file for image processor
   ## $ cat ~/.keras/keras.json 
   ## {
