@@ -33,7 +33,7 @@ Processed/%/multiphase.nii.gz: Processed/%/Pre.longregcc.nii.gz  Processed/%/Art
 	c3d $^ -omc $@
 
 Processed/%/viewnnlirads: 
-	vglrun itksnap -g Processed/$*/Art.raw.nii -s Processed/$*/lrmdapocket/lirads.nii.gz -o Processed/$*/lrmdapocket/lirads-?.nii.gz Processed/$*/Truth.raw.nii.gz Processed/$*-mask.nii.gz  Processed/$*-lesionmask.nii.gz
+	vglrun itksnap -g Processed/$*/multiphase.nii.gz  -s Processed/$*/lrmdapocket/lirads.nii.gz -o Processed/$*/lrmdapocket/lirads-?.nii.gz Processed/$*/Truth.raw.nii.gz  Processed/$*/lesionmask.nii.gz
 
 ## intensity statistics
 qastats/%/lstat.csv: 

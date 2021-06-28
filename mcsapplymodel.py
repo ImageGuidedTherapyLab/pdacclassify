@@ -109,7 +109,7 @@ if (options.predictimage != None and options.segmentation != None and options.c3
      resize_lesion = skimage.transform.resize(numpylesion,(options.trainingresample,options.trainingresample,nslice ),order=0,preserve_range=True,mode='constant').astype(IMG_DTYPE).transpose(2,1,0)
 
      # bind the image, mask, and lesion mask
-     predict_vector = np.repeat(resizepredict [:,:,:,np.newaxis],4,axis=3)
+     predict_vector = np.repeat(resizepre [:,:,:,np.newaxis],4,axis=3)
      predict_vector [:,:,:,1]=resizeart 
      predict_vector [:,:,:,2]=resizeven 
      predict_vector [:,:,:,3]=resize_lesion 
