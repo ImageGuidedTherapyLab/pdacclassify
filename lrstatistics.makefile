@@ -1,5 +1,6 @@
 SHELL := /bin/bash
--include  lrmda256kfold010.makefile
+#-include  lrmda256kfold010.makefile
+-include  phmda256kfold010.makefile
 WORKDIR=$(TRAININGROOT)/Processed
 DATADIR=$(TRAININGROOT)/datalocation/train
 mask:        $(addprefix $(WORKDIR)/,$(addsuffix /unet/mask.nii.gz,$(UIDLIST)))

@@ -1072,7 +1072,10 @@ elif (options.setuptestset):
          lesionprereq  = '$(TRAININGROOT)/Processed/%s/lesionmask.nii.gz' % databaseinfo[idtest]['uid']
          segmaketarget = '$(TRAININGROOT)/Processed/%s/$(DATABASEID)/lirads.nii.gz' % databaseinfo[idtest]['uid']
          uiddictionary[iii].append(databaseinfo[idtest]['uid'] )
-         cvtestcmd = "python ./applymodel.py --predictimage=$< --modelpath=$(word 2, $^) --lesionimage=$(word 3, $^) --segmentation=$@"  
+         if (options.databaseid == 'phmda'):
+           cvtestcmd = "python ./mcsapplymodel.py --predictimage=$< --modelpath=$(word 2, $^) --lesionimage=$(word 3, $^) --segmentation=$@"  
+         else:
+           cvtestcmd = "python ./applymodel.py --predictimage=$< --modelpath=$(word 2, $^) --lesionimage=$(word 3, $^) --segmentation=$@"  
          fileHandle.write('%s: %s  %s %s\n' % (segmaketarget ,imageprereq,modelprereq,lesionprereq    ) )
          fileHandle.write('\t%s\n' % cvtestcmd)
 
