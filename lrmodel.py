@@ -249,6 +249,71 @@ keras.backend.tensorflow_backend.set_session(tf.Session(config = config))
 ###################################
 
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
+class DataGenerator(keras.utils.Sequence):
+    'Generates data for Keras'
+    def __init__(self, images, labels, batch_size=32, dim=(32,32,32), 
+                 n_classes=10):
+        'Initialization'
+        self.dim = dim
+        self.batch_size = batch_size
+        self.labels = labels
+        self.images = images
+        #self.n_channels = n_channels
+        self.n_classes = n_classes
+        #self.shuffle = shuffle
+        #self.on_epoch_end()
+
+    def __len__(self):
+        'Denotes the number of batches per epoch'
+        return int(np.floor(len(self.images) / self.batch_size))
+
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        # Generate indexes of the batch
+        indexes = slice(index*self.batch_size,(index+1)*self.batch_size)
+        ##print("myindex:", index,indexes )
+
+        # Generate data
+        X, y = self.__data_generation(indexes )
+
+        return X, y
+
+    ## def on_epoch_end(self):
+    ##     'Updates indexes after each epoch'
+    ##     self.indexes = np.arange(len(self.list_IDs))
+    ##     if self.shuffle == True:
+    ##         np.random.shuffle(self.indexes)
+
+    def __data_generation(self, indexes ):
+        'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+
+        # Convert the labels into a one-hot representation
+        from keras.utils.np_utils import to_categorical
+        
+        # Convert to uint8 data and find out how many labels.
+        bx_train = self.images[indexes,:,:,np.newaxis]
+        by_train = self.labels[indexes]
+        y_train_one_hot = to_categorical(by_train , num_classes=self.n_classes).reshape((by_train.shape)+(self.n_classes,))
+
+        # Input both liver and lesions mask
+        lesion  = np.max(y_train_one_hot[:,:,:,1:], axis=3)
+
+        #FIXME - is this needed ? 
+        #y_train_one_hot[:,:,:,1]=liver
+        #y_train_one_hot[:,:,:,3]=lesion
+        #y_train_one_hot[:,:,:,4]=lesion
+        #y_train_one_hot[:,:,:,5]=lesion
+        
+        # vectorize input assume that liver mask is given
+        x_train_vector = np.repeat(bx_train,2,axis=3)
+        x_train_vector[:,:,:,1]=lesion
+
+        ##print("X - Shape before: {}; Shape after: {}".format(bx_train.shape, x_train_vector.shape))
+        ##print("Y - Shape before: {}; Shape after: {}".format(by_train.shape, y_train_one_hot.shape))
+
+        return x_train_vector, y_train_one_hot 
+
+# https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class DataGeneratorMultiPhase(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, preimages, artimages,venimages,labels, batch_size=32, dim=(32,32,32), 
@@ -490,13 +555,13 @@ def  TrainMyUnet():
   
   from keras.layers import Input, concatenate
   # @aecelaya
-  def get_batchnorm_pocketunet(_filters=32, _filters_add=0, _kernel_size=(3,3), _padding='same', _activation='prelu', _kernel_regularizer=None, _final_layer_nonlinearity='softmax', _batch_norm=True, _num_classes=1):
+  def get_batchnorm_pocketunet(_filters=32, _filters_add=0, _kernel_size=(3,3), _padding='same', _activation='prelu', _kernel_regularizer=None, _final_layer_nonlinearity='softmax', _batch_norm=True, _num_classes=1, _num_channel_input=2):
       # FIXME - HACK image size
       crop_size = options.trainingresample
       if _padding == 'valid':
-          input_layer = Input(shape=(crop_size+40,crop_size+40,4))
+          input_layer = Input(shape=(crop_size+40,crop_size+40,_num_channel_input))
       elif _padding == 'same':
-          input_layer = Input(shape=(crop_size,crop_size,4))
+          input_layer = Input(shape=(crop_size,crop_size,_num_channel_input))
   
       x0 = addConvBNSequential(input_layer, filters=_filters, kernel_size=_kernel_size, padding=_padding, activation=_activation, kernel_regularizer=_kernel_regularizer, batch_norm=_batch_norm)
       x0 = addConvBNSequential(x0,          filters=_filters, kernel_size=_kernel_size, padding=_padding, activation=_activation, kernel_regularizer=_kernel_regularizer, batch_norm=_batch_norm)
@@ -847,8 +912,12 @@ def  TrainMyUnet():
           return
   callbacksave = MyHistories()
 
+  if (options.databaseid == 'phmda'):
+    numchannelinput = 4
+  else: # FIXME
+    numchannelinput = 2
   # dictionary of models to evaluate
-  modeldict = {'pocket': get_batchnorm_pocketunet(_activation='relu', _batch_norm=True,_filters=32, _filters_add=0,_num_classes=t_max+1),
+  modeldict = {'pocket': get_batchnorm_pocketunet(_activation='relu', _batch_norm=True,_filters=32, _filters_add=0,_num_classes=t_max+1,_num_channel_input = numchannelinput ),
                'full': get_bnormfull_unet_vector(_activation='relu', _batch_norm=True,_filters=64, _filters_add=64,_num_classes=t_max+1)}
 
   # restart if previous model available
