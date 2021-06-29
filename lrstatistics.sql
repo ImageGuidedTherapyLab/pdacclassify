@@ -2,7 +2,9 @@
 -- cat lrstatistics.sql  | sqlite3
 -- sqlite3 -init lrstatistics.sql
 .mode csv
-.import qastats/lstat.csv  tmplstat
+--.import qastats/lstat.csv  tmplstat
+.import qastatslr/lstat.csv  tmplstat
+
 -- cleanup
 create table lstat  as
 select InstanceUID,SegmentationID,FeatureID,LabelID,Mean,StdD,Max,Min,cast(Count as int) Count,`Vol.mm.3`,ExtentX,ExtentY,ExtentZ from tmplstat where cast(Count as int) >0 ;

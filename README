@@ -4,7 +4,7 @@ python lrmodel.py --databaseid=phmda --initialize
 python lrmodel.py --databaseid=phmda --setuptestset
 python lrmodel.py --databaseid=phmda --builddb
 make -f phmda256kfold010.makefile models
-tensorboard  --logdir=./lrmdalog/  --port=6010
+tensorboard  --logdir=./phmdalog/  --port=6010
 make -f phstatistics.makefile labels
 make -j 8 -B -k -i -f phstatistics.makefile lstat
 cat qastats/*/lstat.csv > qastats/lstat.csv
@@ -20,6 +20,6 @@ make -f lrmda256kfold010.makefile models
 tensorboard  --logdir=./lrmdalog/  --port=6010
 make -f lrstatistics.makefile labels
 make -j 8 -B -k -i -f lrstatistics.makefile lstat
-cat qastats/*/lstat.csv > qastats/lstat.csv
+cat qastatslr/*/lstat.csv > qastatslr/lstat.csv
 cat lrstatistics.sql  | sqlite3
 R ; source('lrstats.R')

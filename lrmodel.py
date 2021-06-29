@@ -804,6 +804,13 @@ def  TrainMyUnet():
       dicevalues= K.sum(intersection / K.expand_dims(K.expand_dims(K.expand_dims(sumunion,axis=0),axis=1),axis=2), axis=(0,1,2))
       return -dicevalues
   
+  # Get a "l2 norm of gradients" tensor
+  #https://stackoverflow.com/questions/45694344/calculating-gradient-norm-wrt-weights-with-keras
+  def get_gradient_norm(model):
+      with K.name_scope('gradient_norm'):
+          grads = K.gradients(model.total_loss, model.trainable_weights)
+          norm = K.sqrt(sum([K.sum(K.square(g)) for g in grads]))
+      return norm
   def dice_metric_zero(y_true, y_pred):
       batchdiceloss =  dice_imageloss(y_true, y_pred)
       return -batchdiceloss[:,0]
@@ -953,6 +960,9 @@ def  TrainMyUnet():
   metricsList=[dice_metric_zero,dice_metric_one,dice_metric_two,dice_metric_three,dice_metric_four,dice_metric_five]
   volumesList=[dice_volume_zero,dice_volume_one,dice_volume_two,dice_volume_three,dice_volume_four,dice_volume_five]
   model.compile(loss=lossdict[options.trainingloss],metrics=metricsList[:(t_max+1)]+volumesList[:(t_max+1)],optimizer=options.trainingsolver)
+  #https://stackoverflow.com/questions/45694344/calculating-gradient-norm-wrt-weights-with-keras
+  model.metrics_names.append("gradient_norm")
+  model.metrics_tensors.append(get_gradient_norm(model))
   print("Model parameters: {0:,}".format(model.count_params()))
   # FIXME - better to use more epochs on a single one-hot model? or break up into multiple models steps?
   # FIXME -  IE liver mask first then resize to the liver for viable/necrosis ? 
