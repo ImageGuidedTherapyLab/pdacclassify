@@ -249,7 +249,7 @@ keras.backend.tensorflow_backend.set_session(tf.Session(config = config))
 ###################################
 
 # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
-class DataGenerator(keras.utils.Sequence):
+class DataGeneratorMultiPhase(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, preimages, artimages,venimages,labels, batch_size=32, dim=(32,32,32), 
                  n_classes=10):
@@ -431,8 +431,8 @@ def  TrainMyUnet():
   t_max=np.max(y_train)
   print("Range of values: [0, {}]".format(t_max))
   if (options.databaseid == 'phmda'):
-    train_iter = DataGenerator(xpre_train[TRAINING_SLICES]  ,xart_train[TRAINING_SLICES]  ,xven_train[TRAINING_SLICES]  ,y_train[TRAINING_SLICES]   , batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
-    valid_iter = DataGenerator(xpre_train[VALIDATION_SLICES],xart_train[VALIDATION_SLICES],xven_train[VALIDATION_SLICES],y_train[VALIDATION_SLICES ], batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
+    train_iter = DataGeneratorMultiPhase(xpre_train[TRAINING_SLICES]  ,xart_train[TRAINING_SLICES]  ,xven_train[TRAINING_SLICES]  ,y_train[TRAINING_SLICES]   , batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
+    valid_iter = DataGeneratorMultiPhase(xpre_train[VALIDATION_SLICES],xart_train[VALIDATION_SLICES],xven_train[VALIDATION_SLICES],y_train[VALIDATION_SLICES ], batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
   else: # FIXME
     train_iter = DataGenerator(x_train[TRAINING_SLICES]  ,y_train[TRAINING_SLICES]   , batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
     valid_iter = DataGenerator(x_train[VALIDATION_SLICES],y_train[VALIDATION_SLICES ], batch_size=options.trainingbatch, dim=(options.trainingresample,options.trainingresample), n_classes=t_max+1)
