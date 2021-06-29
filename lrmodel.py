@@ -864,6 +864,7 @@ def  TrainMyUnet():
   class MyHistories(CallbackBase):
       def __init__(self):
           self.min_valloss = np.inf
+          self.min_epoch   = np.inf
 
       def on_train_begin(self, logs={}):
           return
@@ -877,6 +878,7 @@ def  TrainMyUnet():
       def on_epoch_end(self, epoch, logs={}):
           if logs.get('val_loss')< self.min_valloss :
              self.min_valloss = logs.get('val_loss')
+             self.min_epoch   = epoch
              # https://machinelearningmastery.com/save-load-keras-deep-learning-models/
              # serialize model to JSON
              model_json = self.model.to_json()
@@ -904,7 +906,7 @@ def  TrainMyUnet():
              ##   validationoutput.to_filename( '%s/validationoutput.nii.gz' % logfileoutputdir )
 
           # save state to restart
-          statedata = {'epoch':epoch+1, 'valloss':self.min_valloss, 'lr':float(K.eval(self.model.optimizer.lr))}
+          statedata = {'epoch':epoch+1, 'valloss':self.min_valloss, 'min_epoch':self.min_epoch,'lr':float(K.eval(self.model.optimizer.lr))}
           with open('%s/state.json'% logfileoutputdir, 'w') as outfile:  
               json.dump(statedata, outfile)
           print("Saved state to disk - epoch %d,  val_loss %f,  lr %f" % ( statedata['epoch'],self.min_valloss,statedata['lr'])  )
@@ -1133,7 +1135,7 @@ elif (options.setuptestset):
   uiddictionary = {}
   modeltargetlist = []
 
-  makefilename = '%s%dkfold%03d.makefile' % (options.databaseid,options.trainingresample,options.kfolds) 
+  makefilename = '%s%s%dkfold%03d.makefile' % (options.databaseid,options.trainingloss,options.trainingresample,options.kfolds) 
   # open makefile
   with open(makefilename ,'w') as fileHandle:
     for iii in range(options.kfolds):
@@ -1161,7 +1163,7 @@ elif (options.setuptestset):
   # build job list
   with open(makefilename , 'r') as original: datastream = original.read()
   with open(makefilename , 'w') as modified:
-     modified.write( 'TRAININGROOT=%s\n' % options.rootlocation +'DATABASEID=%s%s\n' % (options.databaseid,options.trainingmodel) + 'SQLITEDB=%s\n' % options.sqlitefile + "models: %s \n" % ' '.join(modeltargetlist))
+     modified.write( 'TRAININGROOT=%s\n' % options.rootlocation +'DATABASEID=%s%s%s\n' % (options.databaseid,options.trainingmodel,options.trainingloss) + 'SQLITEDB=%s\n' % options.sqlitefile + "models: %s \n" % ' '.join(modeltargetlist))
      for idkey in uiddictionary.keys():
         modified.write("UIDLIST%d=%s \n" % (idkey,' '.join(uiddictionary[idkey])))
      modified.write("UIDLIST=%s \n" % " ".join(map(lambda x : "$(UIDLIST%d)" % x, uiddictionary.keys()))    +datastream)

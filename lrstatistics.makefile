@@ -1,5 +1,12 @@
 SHELL := /bin/bash
--include  lrmda256kfold010.makefile
+MODELID=lrmdadscwgthi
+MODELID=lrmdadscimg
+ifeq ($(MODELID),lrmdadscimg)
+-include lrmdadscimg256kfold010.makefile 
+endif
+ifeq ($(MODELID),lrmdadscwgthi)
+-include lrmdadscwgthi256kfold010.makefile 
+endif
 WORKDIR=$(TRAININGROOT)/Processed
 DATADIR=$(TRAININGROOT)/datalocation/train
 mask:        $(addprefix $(WORKDIR)/,$(addsuffix /unet/mask.nii.gz,$(UIDLIST)))
@@ -18,7 +25,7 @@ C3DEXE=/rsrch2/ip/dtfuentes/bin/c3d
 .SECONDARY: 
 
 LIRADSLIST = $(shell sed 1d dicom/wideformat.csv | cut -d, -f2 )
-lstat:       $(addprefix    qastatslr/,$(addsuffix /lstat.csv,$(LIRADSLIST)))
+lstat:       $(addprefix    qastats/$(DATABASEID)/,$(addsuffix /lstat.csv,$(LIRADSLIST)))
 qalirads: $(addprefix Processed/,$(addsuffix /qalirads,$(LIRADSLIST)))  
 viewlirads: $(addprefix Processed/,$(addsuffix /viewlirads,$(LIRADSLIST)))  
 multiphaselirads: $(addprefix Processed/,$(addsuffix /multiphase.nii.gz,$(LIRADSLIST)))  
@@ -32,21 +39,21 @@ Processed/%/multiphase.nii.gz: Processed/%/Pre.longregcc.nii.gz  Processed/%/Art
 	c3d $^ -omc $@
 
 Processed/%/viewnnlirads: 
-	vglrun itksnap -g Processed/$*/multiphase.nii.gz  -s Processed/$*/lrmdapocket/lirads.nii.gz -o Processed/$*/lrmdapocket/lirads-?.nii.gz Processed/$*/Truth.raw.nii.gz  Processed/$*/lesionmask.nii.gz
+	vglrun itksnap -g Processed/$*/multiphase.nii.gz  -s Processed/$*/$(DATABASEID)/lirads.nii.gz -o Processed/$*/$(DATABASEID)/lirads-?.nii.gz Processed/$*/Truth.raw.nii.gz  Processed/$*/lesionmask.nii.gz
 
 ## intensity statistics
-qastatslr/%/lstat.csv: 
+qastats/$(DATABASEID)/%/lstat.csv: 
 	mkdir -p $(@D)
 	c3d Processed/$*/Truth.raw.nii.gz -dup -binarize -comp  -lstat > $(@D)/truth.txt &&  sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw.nii.gz,Truth.raw.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/truth.txt > $(@D)/truth.csv 
 	c3d Processed/$*/Art.raw.nii.gz Processed/$*/Truth.raw.nii.gz  -binarize -comp  -lstat > $(@D)/art.txt &&  sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw.nii.gz,Art.raw.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/art.txt > $(@D)/art.csv 
-	c3d Processed/$*/lrmdapocket/lirads-1.nii.gz Processed/$*/Truth.raw.nii.gz  -binarize -comp  -lstat > $(@D)/predict.1.txt &&  sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw.nii.gz,lirads-1.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/predict.1.txt > $(@D)/predict.1.csv 
-	c3d Processed/$*/lrmdapocket/lirads-2.nii.gz Processed/$*/Truth.raw.nii.gz  -binarize -comp  -lstat > $(@D)/predict.2.txt &&  sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw.nii.gz,lirads-2.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/predict.2.txt > $(@D)/predict.2.csv 
-	c3d Processed/$*/Truth.raw.nii.gz  -binarize -comp -thresh 1 1  1 0  -dup Processed/$*/lrmdapocket/lirads.nii.gz  -multiply -lstat > $(@D)/label-1.txt && sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw-1.nii.gz,lirads.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/label-1.txt > $(@D)/label-1.csv 
-	c3d Processed/$*/Truth.raw.nii.gz  -binarize -comp -thresh 2 2  1 0  -dup Processed/$*/lrmdapocket/lirads.nii.gz  -multiply -lstat > $(@D)/label-2.txt && sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw-2.nii.gz,lirads.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/label-2.txt > $(@D)/label-2.csv 
+	c3d Processed/$*/$(DATABASEID)/lirads-1.nii.gz Processed/$*/Truth.raw.nii.gz  -binarize -comp  -lstat > $(@D)/predict.1.txt &&  sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw.nii.gz,lirads-1.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/predict.1.txt > $(@D)/predict.1.csv 
+	c3d Processed/$*/$(DATABASEID)/lirads-2.nii.gz Processed/$*/Truth.raw.nii.gz  -binarize -comp  -lstat > $(@D)/predict.2.txt &&  sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw.nii.gz,lirads-2.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/predict.2.txt > $(@D)/predict.2.csv 
+	c3d Processed/$*/Truth.raw.nii.gz  -binarize -comp -thresh 1 1  1 0  -dup Processed/$*/$(DATABASEID)/lirads.nii.gz  -multiply -lstat > $(@D)/label-1.txt && sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw-1.nii.gz,lirads.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/label-1.txt > $(@D)/label-1.csv 
+	c3d Processed/$*/Truth.raw.nii.gz  -binarize -comp -thresh 2 2  1 0  -dup Processed/$*/$(DATABASEID)/lirads.nii.gz  -multiply -lstat > $(@D)/label-2.txt && sed "1,2d;s/^\s\+/$(subst /,\/,$*),Truth.raw-2.nii.gz,lirads.nii.gz,/g;s/\s\+/,/g;s/LabelID/InstanceUID,SegmentationID,FeatureID,LabelID/g;s/Vol(mm^3)/Vol.mm.3/g;s/Extent(Vox)/ExtentX,ExtentY,ExtentZ/g" $(@D)/label-2.txt > $(@D)/label-2.csv 
 	cat $(@D)/label-?.csv $(@D)/predict.?.csv $(@D)/truth.csv $(@D)/art.csv > $@
 
-qastatslr/lstat.csv: 
-	cat qastatslr/*/lstat.csv > $@
+qastats/$(DATABASEID)/lstat.csv: 
+	cat qastats/$(DATABASEID)/*/lstat.csv > $@
 
 $(DATADIR)/%/TruthVen6.nii.gz:
 	c3d -verbose $(@D)/TruthVen1.nii.gz -replace 3 2 4 3 5 4 -o $@
