@@ -80,7 +80,7 @@ parser.add_option( "--idfold",
                   type="int", dest="idfold", default=0,
                   help="setup info", metavar="int")
 parser.add_option("--numepochs",
-                  type="int", dest="numepochs", default=10,
+                  type="int", dest="numepochs", default=100,
                   help="number of epochs for training", metavar="int")
 (options, args) = parser.parse_args()
 
@@ -1142,7 +1142,7 @@ elif (options.setuptestset):
       uidoutputdir= _globaldirectorytemplate % (options.databaseid,options.trainingloss+ _xstr(options.sampleweight),options.trainingmodel,options.trainingsolver,options.trainingresample,options.trainingid,options.trainingbatch,options.validationbatch,options.kfolds,iii)
       modelprereq    = '%s/tumormodelunet.json' % uidoutputdir
       fileHandle.write('%s: \n' % modelprereq  )
-      fileHandle.write('\tpython lrmodel.py --databaseid=%s --traintumor --idfold=%d --kfolds=%d --trainingresample=%d --numepochs=50\n' % (options.databaseid,iii,options.kfolds,options.trainingresample))
+      fileHandle.write('\tpython lrmodel.py --databaseid=%s --traintumor --idfold=%d --kfolds=%d --trainingresample=%d \n' % (options.databaseid,iii,options.kfolds,options.trainingresample))
       modeltargetlist.append(modelprereq    )
       uiddictionary[iii]=[]
       for idtest in test_set:
