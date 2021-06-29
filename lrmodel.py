@@ -782,13 +782,13 @@ def  TrainMyUnet():
       batchdiceloss =  dice_imageloss(y_true, y_pred)
       # increase weight on tumor
       # FIXME - hard code two labels
-      return K.dot(batchdiceloss,K.variable([[.1,0.,0.],[0.,.1,0.],[0.,0.,1.]]) )
+      return K.dot(batchdiceloss,K.variable([[.1,0.,0.],[0.,1.,0.],[0.,0.,1.]]) )
 
   def dice_hiweightloss(y_true, y_pred, smooth=0):
       batchdiceloss =  dice_imageloss(y_true, y_pred)
       # increase weight on tumor
       # FIXME - hard code two labels
-      return K.dot(batchdiceloss,K.variable([[.01,0.,0.],[0.,.01,0.],[0.,0.,1.]]) )
+      return K.dot(batchdiceloss,K.variable([[.01,0.,0.],[0.,1.,0.],[0.,0.,1.]]) )
 
   def dice_batchloss(y_true, y_pred, smooth=0):
       """
@@ -1142,7 +1142,7 @@ elif (options.setuptestset):
       uidoutputdir= _globaldirectorytemplate % (options.databaseid,options.trainingloss+ _xstr(options.sampleweight),options.trainingmodel,options.trainingsolver,options.trainingresample,options.trainingid,options.trainingbatch,options.validationbatch,options.kfolds,iii)
       modelprereq    = '%s/tumormodelunet.json' % uidoutputdir
       fileHandle.write('%s: \n' % modelprereq  )
-      fileHandle.write('\tpython lrmodel.py --databaseid=%s --traintumor --idfold=%d --kfolds=%d --trainingresample=%d \n' % (options.databaseid,iii,options.kfolds,options.trainingresample))
+      fileHandle.write('\tpython lrmodel.py --databaseid=%s --traintumor --idfold=%d --kfolds=%d --trainingresample=%d --trainingloss=%s \n' % (options.databaseid,iii,options.kfolds,options.trainingresample,options.trainingloss))
       modeltargetlist.append(modelprereq    )
       uiddictionary[iii]=[]
       for idtest in test_set:

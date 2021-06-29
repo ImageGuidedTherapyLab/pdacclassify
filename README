@@ -15,6 +15,7 @@ TF Usage
 =====
 python lrmodel.py --databaseid=lrmda --initialize
 python lrmodel.py --databaseid=lrmda --setuptestset
+python lrmodel.py --databaseid=lrmda --setuptestset --trainingloss=dscwgthi
 python lrmodel.py --databaseid=lrmda --builddb
 make -f lrmda256kfold010.makefile models
 tensorboard  --logdir=./lrmdalog/  --port=6010
