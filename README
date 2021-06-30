@@ -24,7 +24,7 @@ make MODELID=lrmdadscimg   -f lrstatistics.makefile labels
 make MODELID=lrmdadscwgthi -f lrstatistics.makefile labels
 make MODELID=lrmdadscimg   -j 8 -B -k -i -f lrstatistics.makefile lstat
 make MODELID=lrmdadscwgthi -j 8 -B -k -i -f lrstatistics.makefile lstat
-cat qastats/lrmdapocketdscimg/*/lstat.csv   > qastats/lrmdapocketdscimg/*/lstat.csv  
-cat qastats/lrmdapocketdscwgthi/*/lstat.csv > qastats/lrmdapocketdscwgthi/*/lstat.csv
+cat qastats/lrmdapocketdscimg/*/lstat.csv   > qastats/lrmdapocketdscimg/lstat.csv  
+cat qastats/lrmdapocketdscwgthi/*/lstat.csv > qastats/lrmdapocketdscwgthi/lstat.csv
 cat lrstatistics.sql  | sqlite3
 R ; source('lrstats.R')

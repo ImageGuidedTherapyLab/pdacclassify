@@ -2,8 +2,9 @@
 -- cat lrstatistics.sql  | sqlite3
 -- sqlite3 -init lrstatistics.sql
 .mode csv
---.import qastats/lstat.csv  tmplstat
-.import qastatslr/lstat.csv  tmplstat
+-- .import  qastats/lrmdapocketdscwgthi/lstat.csv tmplstat
+.import  qastats/lrmdapocketdscimg/lstat.csv  tmplstat
+
 
 -- cleanup
 create table lstat  as
