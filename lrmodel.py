@@ -80,7 +80,7 @@ parser.add_option( "--idfold",
                   type="int", dest="idfold", default=0,
                   help="setup info", metavar="int")
 parser.add_option("--numepochs",
-                  type="int", dest="numepochs", default=100,
+                  type="int", dest="numepochs", default=110,
                   help="number of epochs for training", metavar="int")
 (options, args) = parser.parse_args()
 
@@ -555,7 +555,7 @@ def  TrainMyUnet():
   
   from keras.layers import Input, concatenate
   # @aecelaya
-  def get_batchnorm_pocketunet(_filters=32, _filters_add=0, _kernel_size=(3,3), _padding='same', _activation='prelu', _kernel_regularizer=None, _final_layer_nonlinearity='softmax', _batch_norm=True, _num_classes=1, _num_channel_input=2):
+  def get_batchnorm_pocketunet(_filters=32, _filters_add=0, _kernel_size=(9,9), _padding='same', _activation='prelu', _kernel_regularizer=None, _final_layer_nonlinearity='softmax', _batch_norm=True, _num_classes=1, _num_channel_input=2):
       # FIXME - HACK image size
       crop_size = options.trainingresample
       if _padding == 'valid':

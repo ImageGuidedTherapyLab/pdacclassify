@@ -28,3 +28,4 @@ cat qastats/lrmdapocketdscimg/*/lstat.csv   > qastats/lrmdapocketdscimg/lstat.cs
 cat qastats/lrmdapocketdscwgthi/*/lstat.csv > qastats/lrmdapocketdscwgthi/lstat.csv
 cat lrstatistics.sql  | sqlite3
 R ; source('lrstats.R')
+Rscript lrstats.R
