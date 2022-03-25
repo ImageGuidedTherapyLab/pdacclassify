@@ -1,3 +1,7 @@
+Setup
+=====
+cat pdac.sql  | sqlite3
+
 TF Usage
 =====
 python lrmodel.py --databaseid=phmda --initialize
