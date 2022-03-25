@@ -74,23 +74,26 @@ join sl.studies sd on sd.PatientsUID = ws.PatientsUID
 join sl.series  se on sd.StudyInstanceUID=se.StudyInstanceUID
 where ws.Art is null;
 
----- wide format
---.mode csv
---.output dicom/wideformat.csv 
---select ws.*,dn.seriesDescription PreDescription , an.seriesDescription ArtDescription, pt.seriesDescription VenDescription, tt.seriesDescription TruthDescription,
---rtrim(di.Filename, replace(di.Filename, '/', '')) PreFilename,
---rtrim(ai.Filename, replace(ai.Filename, '/', '')) ArtFilename,
---rtrim(pi.Filename, replace(pi.Filename, '/', '')) VenFilename,
---                           ti.Filename            TruthFilename
---from widestudy ws 
---join sl.images  di on di.SeriesInstanceUID= ws.Pre
---join sl.images  ai on ai.SeriesInstanceUID= ws.Art
---join sl.images  pi on pi.SeriesInstanceUID= ws.Ven
---join sl.images  ti on ti.SeriesInstanceUID= ws.Truth
---join flagdata  dn on dn.SeriesInstanceUID= ws.Pre
---join flagdata  an on an.SeriesInstanceUID= ws.Art
---join flagdata  pt on pt.SeriesInstanceUID= ws.Ven 
---join flagdata  tt on tt.SeriesInstanceUID= ws.Truth 
---GROUP BY    ws.StudyInstanceUID;
---
---.quit
+-- wide format
+.mode csv
+.output dicom/wideformatd2.csv 
+select ws.*,dn.seriesDescription PreDescription , an.seriesDescription ArtDescription, pt.seriesDescription VenDescription, tt.seriesDescription Truth1Description, td.seriesDescription Truth2Description,
+rtrim(di.Filename, replace(di.Filename, '/', '')) PreFilename,
+rtrim(ai.Filename, replace(ai.Filename, '/', '')) ArtFilename,
+rtrim(pi.Filename, replace(pi.Filename, '/', '')) VenFilename,
+                           ti.Filename            Truth1Filename,
+                           t2.Filename            Truth2Filename
+from widestudy ws 
+join sl.images  di on di.SeriesInstanceUID= ws.Pre
+join sl.images  ai on ai.SeriesInstanceUID= ws.Art
+join sl.images  pi on pi.SeriesInstanceUID= ws.Ven
+join sl.images  ti on ti.SeriesInstanceUID= ws.Truth1
+join sl.images  t2 on t2.SeriesInstanceUID= ws.Truth2
+join flagdata  dn on dn.SeriesInstanceUID= ws.Pre
+join flagdata  an on an.SeriesInstanceUID= ws.Art
+join flagdata  pt on pt.SeriesInstanceUID= ws.Ven 
+join flagdata  tt on tt.SeriesInstanceUID= ws.Truth1
+join flagdata  td on td.SeriesInstanceUID= ws.Truth2
+GROUP BY    ws.StudyInstanceUID;
+
+.quit
