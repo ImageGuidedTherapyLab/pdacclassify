@@ -6,6 +6,7 @@ attach database 'dicom/ctkDICOM.sql' as sl;
 .mode csv
 .import dicom/NNdatabase06_04updated.csv  edrn
 
+-- sqlite> select distinct im.seriesDescription from sl.series im;
 -- "Recon 2: LIVER/PANCREAS"
 -- "Series Description"
 -- "PreXRT-PRE resampled"
@@ -34,16 +35,20 @@ create table flagdata  as
 select sd.PatientsUID,pt.PatientID,im.StudyInstanceUID,im.SeriesInstanceUID,im.seriesDescription,im.SeriesDate,di.FileName,
 CASE WHEN (im.seriesDescription == "PreXRT-PRE  resampled" or im.seriesDescription == "PRE LIVER resampled" or im.seriesDescription == "PostXRT-Pre resampled" or im.seriesDescription == "PreXRT-Pre resampled" or im.seriesDescription == "PRE resampled" or im.seriesDescription == "PreXRT-PRE resampled")  THEN 'Pre'
      WHEN (im.seriesDescription like '%Port%' or im.seriesDescription like '%port%' or im.seriesDescription like '%ven%'or im.seriesDescription like '%PV%' )  THEN 'Ven'
-     WHEN (im.seriesDescription == 'normal pancreas' or im.seriesDescription == 'Series Description' or im.seriesDescription == 'SeriesDescription') THEN 'Truth'
+     WHEN im.Modality == 'RTSTRUCT'  THEN 'Truth'
      ELSE 'Art' END AS ImageType
 from sl.series im 
 join sl.images di on di.SeriesInstanceUID= im.SeriesInstanceUID
 join sl.studies  sd on sd.StudyInstanceUID = im.StudyInstanceUID
 join sl.patients pt on sd.PatientsUID = pt.UID;
--- select * from flagdata where ImageType = 'Ven';
+-- select * from flagdata where ImageType = 'Truth';
 
 create table labeldatatmp  as
-select *,ROW_NUMBER() OVER( partition by PatientsUID  ORDER BY SeriesInstanceUID) AS truthid  from flagdata where ImageType = 'Truth';
+select *,
+       CASE WHEN Filename like '%normal%'   THEN 1
+            WHEN Filename like '%BL%' THEN 2
+            END AS truthid
+       from flagdata where ImageType = 'Truth';
 select max(truthid) from labeldatatmp  ;
 create table labeldata  as
 select *, 'Truth'||truthid truthlabel  from labeldatatmp;
@@ -95,9 +100,12 @@ join sl.studies sd on sd.PatientsUID = ws.PatientsUID
 join sl.series  se on sd.StudyInstanceUID=se.StudyInstanceUID
 where ws.Art is null;
 
+-- error check
+select ws.PatientID from  widestudy ws  where ws.Truth2 is NULL ;
+
 -- wide format
-.mode csv
-.output dicom/wideformatd2.csv 
-select ws.* from widestudy ws ;
+-- .mode csv
+-- .output dicom/wideformatd2.csv 
+-- select ws.* from widestudy ws ;
 
 .quit
