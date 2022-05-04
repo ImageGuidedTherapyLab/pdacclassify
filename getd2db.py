@@ -3,6 +3,9 @@ import csv
 csvdata = csv.DictReader(open("dicom/wideformatd2.csv"))
 data = {}
 for row in csvdata:
+    if(row['PatientID'] in data.keys()):
+        print("{name} already recorded!".format(name = row['PatientID']))
+        raise ValueError
     data[row['PatientID']] = row
 
 
