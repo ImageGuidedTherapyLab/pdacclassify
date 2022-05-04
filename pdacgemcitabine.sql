@@ -104,8 +104,8 @@ where ws.Art is null;
 select ws.PatientID from  widestudy ws  where ws.Truth2 is NULL ;
 
 -- wide format
--- .mode csv
--- .output dicom/wideformatd2.csv 
--- select ws.* from widestudy ws ;
+.mode csv
+.output dicom/wideformatd2.csv 
+select ws.* from widestudy ws ;
 
 .quit
