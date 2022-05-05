@@ -108,4 +108,13 @@ select ws.PatientID from  widestudy ws  where ws.Truth2 is NULL ;
 .output dicom/wideformatd2.csv 
 select ws.* from widestudy ws ;
 
+.output dicom/wideclassificationd2.csv 
+select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Art.raw.nii.gz' as Art,'D2Processed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask,
+       ws.DeltaScore as target,
+       CASE WHEN ws.DeltaScore = 'High'   THEN 1
+            WHEN ws.DeltaScore = 'Low'   THEN 0
+            ELSE NULL 
+            END AS truthid
+       from widestudy ws ;
+
 .quit

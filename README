@@ -33,3 +33,10 @@ cat qastats/lrmdapocketdscwgthi/*/lstat.csv > qastats/lrmdapocketdscwgthi/lstat.
 cat lrstatistics.sql  | sqlite3
 R ; source('lrstats.R')
 Rscript lrstats.R
+
+
+
+TF Usage
+=====
+cat pdacgemcitabine.sql  | sqlite3
+python /rsrch1/ip/dtfuentes/github/pocketnet/classification.py
