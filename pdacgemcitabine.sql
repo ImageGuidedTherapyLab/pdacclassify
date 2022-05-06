@@ -103,10 +103,14 @@ where ws.Art is null;
 -- error check
 select ws.PatientID from  widestudy ws  where ws.Truth2 is NULL ;
 
+-- FIXME HACK remove problem data
+delete FROM widestudy  WHERE PatientsUID = 15;
+
 -- wide format
+-- FIXME use group by to remove duplicates
 .mode csv
 .output dicom/wideformatd2.csv 
-select ws.* from widestudy ws ;
+select ws.* from widestudy ws;
 
 .output dicom/wideclassificationd2.csv 
 select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Art.raw.nii.gz' as Art,'D2Processed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask,
@@ -115,6 +119,15 @@ select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Art.raw.nii.gz' as Ar
             WHEN ws.DeltaScore = 'Low'   THEN 0
             ELSE NULL 
             END AS truthid
-       from widestudy ws ;
+       from widestudy ws;
+
+.output dicom/wideclassificationroid2.csv 
+select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Artroi.nii.gz' as Art,'D2Processed/'||ws.PatientID||'/lesionroi.nii.gz' as Mask,
+       ws.DeltaScore as target,
+       CASE WHEN ws.DeltaScore = 'High'   THEN 1
+            WHEN ws.DeltaScore = 'Low'   THEN 0
+            ELSE NULL 
+            END AS truthid
+       from widestudy ws;
 
 .quit
