@@ -44,8 +44,8 @@ if (options.image != None and options.mask != None ):
       print(centroid) 
     except (NameError, SyntaxError) as excp: 
       print(excp)
-    npixel = 128
-    nslice = 64
+    npixel = 256
+    nslice = 96
     roi = np.array([ int(centroid[0]) - npixel/2. , int(centroid[0]) + npixel/2. , 
                      int(centroid[1]) - npixel/2. , int(centroid[1]) + npixel/2. , 
                      int(centroid[2]) - nslice/2. , int(centroid[2]) + nslice/2. ] )
