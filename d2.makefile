@@ -30,7 +30,7 @@ D2Processed/%/Normal.raw.nii.gz: D2Processed/%/Art.raw.nii.gz
 
 D2Processed/%/lesionmask.nii.gz: D2Processed/%/Bl.raw.nii.gz D2Processed/%/Normal.raw.nii.gz
 	if [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "Low" ] ; then c3d -verbose $< -replace 1 2 -o $@  ; elif [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "High" ] ; then c3d -verbose $< -replace 1 3 -o $@  ;fi
-	c3d -verbose $@ $(word 2,$^) -add  -o $@  
+	c3d -verbose $< -replace 1 2  $(word 2,$^) -add  -o $@  
 	echo vglrun itksnap -g $(@D)/Art.raw.nii.gz -s $@
 
 D2Processed/%/lesionroi.nii.gz: D2Processed/%/Art.raw.nii.gz D2Processed/%/lesionmask.nii.gz
