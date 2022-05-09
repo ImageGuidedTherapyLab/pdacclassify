@@ -31,7 +31,6 @@ if (options.image != None and options.mask != None ):
     # error check
     assert numpyimage.shape[0:2] == (_globalexpectedpixel,_globalexpectedpixel)
 
-    normalizedimage = options.image.replace('Ven.raw.nii.gz','Ven.normalize.nii.gz')
     getHeaderCmd = 'c3d %s  -centroid | grep CENTROID_VOX | sed "s/CENTROID_VOX\ //g"' % (options.mask)
     print(getHeaderCmd )
     try: 

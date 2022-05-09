@@ -7,6 +7,7 @@ CONTRASTLIST = Art
 raw: $(foreach idc,$(CONTRASTLIST),$(addprefix D2Processed/,$(addsuffix /$(idc).raw.nii.gz,$(LISTUID)))) 
 truth: $(addprefix D2Processed/,$(addsuffix /Bl.raw.nii.gz,$(LISTUID))) $(addprefix D2Processed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
 lesionmask: $(addprefix D2Processed/,$(addsuffix /lesionmask.nii.gz,$(LISTUID))) 
+rmbg: $(addprefix D2Processed/,$(addsuffix /Artrmbg.nii.gz,$(LISTUID))) 
 roi: $(addprefix D2Processed/,$(addsuffix /lesionroi.nii.gz,$(LISTUID))) 
 viewraw: $(addprefix D2Processed/,$(addsuffix /viewraw,$(LISTUID)))  
 viewbb: $(addprefix D2Processed/,$(addsuffix /viewbb,$(LISTUID)))  
@@ -33,7 +34,9 @@ D2Processed/%/lesionmask.nii.gz: D2Processed/%/Bl.raw.nii.gz D2Processed/%/Norma
 	c3d -verbose $< -replace 1 2  $(word 2,$^) -add  -o $@  
 	echo vglrun itksnap -g $(@D)/Art.raw.nii.gz -s $@
 
-D2Processed/%/lesionroi.nii.gz: D2Processed/%/Art.raw.nii.gz D2Processed/%/lesionmask.nii.gz
+D2Processed/%/Artrmbg.nii.gz: D2Processed/%/Art.raw.nii.gz D2Processed/%/lesionmask.nii.gz
+	c3d -verbose $^ -binarize -multiply -o  $@  
+D2Processed/%/lesionroi.nii.gz: D2Processed/%/Artrmbg.nii.gz D2Processed/%/lesionmask.nii.gz
 	python3 pdacroi.py --image=$< --mask=$(word 2,$^) --outputdir=$(@D)
 
 D2Processed/%/viewinfo: D2Processed/%/Art.raw.nii.gz D2Processed/%/Normal.raw.nii.gz D2Processed/%/Bl.raw.nii.gz
