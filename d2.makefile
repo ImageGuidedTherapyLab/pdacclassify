@@ -30,8 +30,8 @@ D2Processed/%/Normal.raw.nii.gz: D2Processed/%/Art.raw.nii.gz
 	echo vglrun itksnap -g $< -s $@
 
 D2Processed/%/lesionmask.nii.gz: 
-	if [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "Low" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 2 -o $@  ; elif [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "High" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 3 -o $@  ;fi
-	echo c3d -verbose  $@   $(@D)/Normal.raw.nii.gz -add  -o $@  
+	# if [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "Low" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 2 -o $@  ; elif [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "High" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 3 -o $@  ;fi
+	c3d -verbose $(@D)/Bl.raw.nii.gz  -replace 1 2  $(@D)/Normal.raw.nii.gz -add  -o $@  
 	echo vglrun itksnap -g $(@D)/Art.raw.nii.gz -s $@
 
 D2Processed/%/Artrmbg.nii.gz:  D2Processed/%/lesionmask.nii.gz
