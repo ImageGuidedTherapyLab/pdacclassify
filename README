@@ -269,5 +269,7 @@ make -f d2.makefile -j 12 -B lesionmask
 make -f d2.makefile -j 12 roi
 python /rsrch1/ip/dtfuentes/github/pocketnet/pdacpreprocess.py
 python /rsrch1/ip/dtfuentes/github/pocketnet/classification.py
+Rscript d2stats.R
+
 
 tensorboard --logdir log/0
