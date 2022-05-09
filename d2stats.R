@@ -10,9 +10,12 @@ graphics.off()
 # source('d2stats.R')
 
 mydataset0 <- read.csv('preds_unet_pocket0.csv', na.strings=c(".", "NA", "", "?"), strip.white=TRUE, encoding="UTF-8")
-mydataset1 <- read.csv('preds_unet_pocket.csv', na.strings=c(".", "NA", "", "?"), strip.white=TRUE, encoding="UTF-8")
+mydataset1 <- read.csv('preds_unet_pocket1.csv', na.strings=c(".", "NA", "", "?"), strip.white=TRUE, encoding="UTF-8")
+mydataset2 <- read.csv('preds_unet_pocket2.csv', na.strings=c(".", "NA", "", "?"), strip.white=TRUE, encoding="UTF-8")
+mydataset3 <- read.csv('preds_unet_pocket3.csv', na.strings=c(".", "NA", "", "?"), strip.white=TRUE, encoding="UTF-8")
+mydataset4 <- read.csv('preds_unet_pocket4.csv', na.strings=c(".", "NA", "", "?"), strip.white=TRUE, encoding="UTF-8")
 
-mydataset = rbind(mydataset0 ,mydataset1 )
+mydataset = rbind(mydataset0 ,mydataset1 , mydataset2 ,mydataset3 , mydataset4 )
 
 # summary stats
 print( 'unique patients' )
