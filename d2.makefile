@@ -6,6 +6,7 @@ CONTRASTLIST = Art
 
 raw: $(foreach idc,$(CONTRASTLIST),$(addprefix D2Processed/,$(addsuffix /$(idc).raw.nii.gz,$(LISTUID)))) 
 truth: $(addprefix D2Processed/,$(addsuffix /Bl.raw.nii.gz,$(LISTUID))) $(addprefix D2Processed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
+artdiff: $(addprefix D2Processed/,$(addsuffix /Artdiff.nii.gz,$(LISTUID))) 
 lesionmask: $(addprefix D2Processed/,$(addsuffix /lesionmask.nii.gz,$(LISTUID))) 
 lesionrad: $(addprefix D2Processed/,$(addsuffix /lesionrad.nii.gz,$(LISTUID))) 
 rmbg: $(addprefix D2Processed/,$(addsuffix /Artrmbg.nii.gz,$(LISTUID))) 
@@ -23,6 +24,9 @@ dbg:
 D2Processed/%/Art.raw.nii.gz:
 	mkdir -p $(@D); dcm2niix  -m y -f Artfixme  -v 1 -z y  -t y -o $(@D)  "$(shell python getd2db.py --uid=$* --art )"
 	DicomSeriesReadImageWrite2  "$(shell python getd2db.py --uid=$* --art )" $@
+
+D2Processed/%/Artdiff.nii.gz: D2Processed/%/Art.raw.nii.gz D2Processed/%/Normal.raw.nii.gz
+	python3 pdacdiff.py --image=$< --mask=$(word 2,$^) --output=$@
 
 D2Processed/%/Bl.raw.nii.gz: D2Processed/%/Art.raw.nii.gz
 	mkdir -p $(@D)
