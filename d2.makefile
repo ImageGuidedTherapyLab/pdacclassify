@@ -15,7 +15,7 @@ viewbb: $(addprefix D2Processed/,$(addsuffix /viewbb,$(LISTUID)))
 viewinfo: $(addprefix D2Processed/,$(addsuffix /viewinfo,$(LISTUID)))  
 
 dicom/radiomicsout.csv: dicom/wideclassificationrad.csv 
-	pyradiomics  $< -o $@   -v  5   -p Params.yaml -f csv
+	pyradiomics  $< -o $@   -v  5  -j 8  -p Params.yaml -f csv
 
 dbg:
 	@echo $(LISTUID)    
