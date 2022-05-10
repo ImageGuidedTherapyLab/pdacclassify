@@ -7,11 +7,15 @@ CONTRASTLIST = Art
 raw: $(foreach idc,$(CONTRASTLIST),$(addprefix D2Processed/,$(addsuffix /$(idc).raw.nii.gz,$(LISTUID)))) 
 truth: $(addprefix D2Processed/,$(addsuffix /Bl.raw.nii.gz,$(LISTUID))) $(addprefix D2Processed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
 lesionmask: $(addprefix D2Processed/,$(addsuffix /lesionmask.nii.gz,$(LISTUID))) 
+lesionrad: $(addprefix D2Processed/,$(addsuffix /lesionrad.nii.gz,$(LISTUID))) 
 rmbg: $(addprefix D2Processed/,$(addsuffix /Artrmbg.nii.gz,$(LISTUID))) 
 roi: $(addprefix D2Processed/,$(addsuffix /lesionroi.nii.gz,$(LISTUID))) 
 viewraw: $(addprefix D2Processed/,$(addsuffix /viewraw,$(LISTUID)))  
 viewbb: $(addprefix D2Processed/,$(addsuffix /viewbb,$(LISTUID)))  
 viewinfo: $(addprefix D2Processed/,$(addsuffix /viewinfo,$(LISTUID)))  
+
+dicom/radiomicsout.csv: dicom/wideclassificationrad.csv 
+	pyradiomics  $< -o $@   -v  5   -p Params.yaml -f csv
 
 dbg:
 	@echo $(LISTUID)    
@@ -29,8 +33,10 @@ D2Processed/%/Normal.raw.nii.gz: D2Processed/%/Art.raw.nii.gz
 	plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input   "$(shell python getd2db.py --uid=$* --nrm )"
 	echo vglrun itksnap -g $< -s $@
 
+D2Processed/%/lesionrad.nii.gz: 
+	if [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "Low" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 2 -o $@  ; elif [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "High" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 3 -o $@  ;fi
+	c3d -verbose $@ $(@D)/Normal.raw.nii.gz -add  -o $@  
 D2Processed/%/lesionmask.nii.gz: 
-	# if [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "Low" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 2 -o $@  ; elif [  $(word $(shell sed 1d dicom/wideformatd2.csv | cut -d, -f2 | grep -n $* |cut -f1 -d: ), $(LISTDELTA))  == "High" ] ; then c3d -verbose $(@D)/Bl.raw.nii.gz -replace 1 3 -o $@  ;fi
 	c3d -verbose $(@D)/Bl.raw.nii.gz  -replace 1 2  $(@D)/Normal.raw.nii.gz -add  -o $@  
 	echo vglrun itksnap -g $(@D)/Art.raw.nii.gz -s $@
 

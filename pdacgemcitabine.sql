@@ -129,5 +129,14 @@ select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Artroi.nii.gz' as Art
             ELSE NULL 
             END AS truthid
        from widestudy ws;
+.output dicom/wideclassificationrad.csv 
+select ws.PatientID as id, '/rsrch3/ip/dtfuentes/github/pdacclassify/D2Processed/'||ws.PatientID||'/Art.raw.nii.gz' as Image,'/rsrch3/ip/dtfuentes/github/pdacclassify/D2Processed/'||ws.PatientID||'/Bl.raw.nii.gz' as Mask,
+       ws.DeltaScore as target,
+       CASE WHEN ws.DeltaScore = 'High'   THEN 1
+            WHEN ws.DeltaScore = 'Low'   THEN 0
+            ELSE NULL 
+            END AS truthid
+       from widestudy ws;
+
 
 .quit
