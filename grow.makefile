@@ -5,7 +5,8 @@ LISTDELTA  = $(shell sed 1d dicom/wideformatgrow.csv | cut -d, -f3 )
 CONTRASTLIST = Art 
 
 raw: $(foreach idc,$(CONTRASTLIST),$(addprefix GrowProcessed/,$(addsuffix /$(idc).raw.nii.gz,$(LISTUID)))) 
-truth: $(addprefix GrowProcessed/,$(addsuffix /Bl.raw.nii.gz,$(LISTUID))) $(addprefix GrowProcessed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
+#truth: $(addprefix GrowProcessed/,$(addsuffix /Bl.raw.nii.gz,$(LISTUID))) $(addprefix GrowProcessed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
+truth:  $(addprefix GrowProcessed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
 artdiff: $(addprefix GrowProcessed/,$(addsuffix /Artdiff.nii.gz,$(LISTUID))) 
 lesionmask: $(addprefix GrowProcessed/,$(addsuffix /lesionmask.nii.gz,$(LISTUID))) 
 lesionrad: $(addprefix GrowProcessed/,$(addsuffix /lesionrad.nii.gz,$(LISTUID))) 
@@ -15,26 +16,26 @@ viewraw: $(addprefix GrowProcessed/,$(addsuffix /viewraw,$(LISTUID)))
 viewbb: $(addprefix GrowProcessed/,$(addsuffix /viewbb,$(LISTUID)))  
 viewinfo: $(addprefix GrowProcessed/,$(addsuffix /viewinfo,$(LISTUID)))  
 
-dicom/radiomicsout.csv: dicom/wideclassificationgrowrad.csv 
+dicom/radiomicsgrowout.csv: dicom/wideclassificationgrowrad.csv 
 	pyradiomics  $< -o $@   -v  5  -j 8  -p Params.yaml -f csv
 
 dbg:
 	@echo $(LISTUID)    
 	@echo $(LISTDELTA)    
 GrowProcessed/%/Art.raw.nii.gz:
-	mkdir -p $(@D); dcm2niix  -m y -f Artfixme  -v 1 -z y  -t y -o $(@D)  "$(shell python getd2db.py --uid=$* --art )"
-	DicomSeriesReadImageWrite2  "$(shell python getd2db.py --uid=$* --art )" $@
+	mkdir -p $(@D); dcm2niix  -m y -f Artfixme  -v 1 -z y  -t y -o $(@D)  "$(shell python getgrowdb.py --uid=$* --art )"
+	DicomSeriesReadImageWrite2  "$(shell python getgrowdb.py --uid=$* --art )" $@
 
 GrowProcessed/%/Artdiff.nii.gz: GrowProcessed/%/Art.raw.nii.gz GrowProcessed/%/Normal.raw.nii.gz
 	python3 pdacdiff.py --image=$< --mask=$(word 2,$^) --output=$@
 
 GrowProcessed/%/Bl.raw.nii.gz: GrowProcessed/%/Art.raw.nii.gz
 	mkdir -p $(@D)
-	plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input   "$(shell python getd2db.py --uid=$* --bl )"
+	plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input   "$(shell python getgrowdb.py --uid=$* --bl )"
 	echo vglrun itksnap -g $< -s $@
 GrowProcessed/%/Normal.raw.nii.gz: GrowProcessed/%/Art.raw.nii.gz
 	mkdir -p $(@D)
-	plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input   "$(shell python getd2db.py --uid=$* --nrm )"
+	plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input   "$(shell python getgrowdb.py --uid=$* --nrm )"
 	echo vglrun itksnap -g $< -s $@
 
 GrowProcessed/%/lesionrad.nii.gz: 
