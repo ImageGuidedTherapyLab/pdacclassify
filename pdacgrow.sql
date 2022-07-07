@@ -110,11 +110,11 @@ delete FROM widestudy  WHERE PatientsUID = 15;
 -- wide format
 -- FIXME use group by to remove duplicates
 .mode csv
-.output dicom/wideformatd2.csv 
+.output dicom/wideformatgrow.csv 
 select ws.* from widestudy ws;
 
-.output dicom/wideclassificationd2.csv 
-select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Art.raw.nii.gz' as Art,'D2Processed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask,
+.output dicom/wideclassificationgrow.csv 
+select ws.PatientID as id, 'GrowProcessed/'||ws.PatientID||'/Art.raw.nii.gz' as Art,'GrowProcessed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask,
        ws.DeltaScore as target,
        CASE WHEN ws.DeltaScore = 'High'   THEN 1
             WHEN ws.DeltaScore = 'Low'   THEN 0
@@ -123,7 +123,7 @@ select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Art.raw.nii.gz' as Ar
        from widestudy ws;
 
 .output dicom/wideclassificationroigrow.csv 
-select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Artroi.nii.gz' as Art,'D2Processed/'||ws.PatientID||'/lesionroi.nii.gz' as Mask,
+select ws.PatientID as id, 'GrowProcessed/'||ws.PatientID||'/Artroi.nii.gz' as Art,'GrowProcessed/'||ws.PatientID||'/lesionroi.nii.gz' as Mask,
        ws.DeltaScore as target,
        CASE WHEN ws.DeltaScore = 'High'   THEN 1
             WHEN ws.DeltaScore = 'Low'   THEN 0
@@ -131,14 +131,14 @@ select ws.PatientID as id, 'D2Processed/'||ws.PatientID||'/Artroi.nii.gz' as Art
             END AS truthid
        from widestudy ws;
 .output dicom/wideclassificationgrowrad.csv 
-select ws.PatientID as id, '/rsrch3/ip/dtfuentes/github/pdacclassify/D2Processed/'||ws.PatientID||'/Artdiff.nii.gz' as Image,'/rsrch3/ip/dtfuentes/github/pdacclassify/D2Processed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask, 1 as Label,
+select ws.PatientID as id, '/rsrch3/ip/dtfuentes/github/pdacclassify/GrowProcessed/'||ws.PatientID||'/Artdiff.nii.gz' as Image,'/rsrch3/ip/dtfuentes/github/pdacclassify/GrowProcessed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask, 1 as Label,
        ws.DeltaScore as target,
        CASE WHEN ws.DeltaScore = 'High'   THEN 1
             WHEN ws.DeltaScore = 'Low'   THEN 0
             ELSE NULL 
             END AS truthid
        from widestudy ws;
-select ws.PatientID as id, '/rsrch3/ip/dtfuentes/github/pdacclassify/D2Processed/'||ws.PatientID||'/Artdiff.nii.gz' as Image,'/rsrch3/ip/dtfuentes/github/pdacclassify/D2Processed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask, 2 as Label,
+select ws.PatientID as id, '/rsrch3/ip/dtfuentes/github/pdacclassify/GrowProcessed/'||ws.PatientID||'/Artdiff.nii.gz' as Image,'/rsrch3/ip/dtfuentes/github/pdacclassify/GrowProcessed/'||ws.PatientID||'/lesionmask.nii.gz' as Mask, 2 as Label,
        ws.DeltaScore as target,
        CASE WHEN ws.DeltaScore = 'High'   THEN 1
             WHEN ws.DeltaScore = 'Low'   THEN 0

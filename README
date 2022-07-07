@@ -273,3 +273,9 @@ tensorboard --logdir log
 
 make -f d2.makefile dicom/radiomicsout.csv
 
+GROW 
+=====
+cat pdacgrow.sql  | sqlite3
+make -f grow.makefile raw
+make -f grow.makefile truth
+make -f grow.makefile dicom/radiomicsgrowout.csv
