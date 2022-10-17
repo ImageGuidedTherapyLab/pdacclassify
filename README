@@ -2,6 +2,10 @@ Setup
 =====
 cat pdac.sql  | sqlite3
 
+Usage
+=====
+Rscript -e "rmarkdown::render( 'binary_analysis.RMD', output_file = './binary_exampleout.pdf', params = list( csvPath='dicom/radiomicsoutwide.csv', outCsvName = 'exampledata_binary_withpredictions.csv',target='survivalClass', positive_class='short', regexp='(Volume$|Mean$)', fixed_inputs='age',leaveOneOut=TRUE, nfold=NULL, foldID=NULL) )"
+
 TF Usage
 =====
 python lrmodel.py --databaseid=phmda --initialize
