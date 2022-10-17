@@ -719,9 +719,12 @@ cat("\n")
 # https://glmnet.stanford.edu/articles/glmnet.html#linear-regression-family-gaussian-default-
 library(glmnet)
 mydat = na.omit(crs$dataset[crs$train, c(crs$input, crs$target)])
-glmnetfit <- cv.glmnet(mydat[1:6] , as.numeric(mydat[7]), alpha = 1.0, nlambda = 100,family = "binomial")
+glmnetfit <- cv.glmnet(as.matrix(mydat[1:6]) , as.numeric(unlist(mydat[7])), alpha = 1.0, nlambda = 100,family = "binomial")
 plot(glmnetfit )
 print(glmnetfit )
+coef(glmnetfit , s = "lambda.min")
+predict(glmnetfit , newx = as.matrix(mydat[1,1:6]), s = "lambda.min")
+
 
 #=======================================================================
 # Rattle timestamp: 2022-10-13 14:31:24 x86_64-pc-linux-gnu 
