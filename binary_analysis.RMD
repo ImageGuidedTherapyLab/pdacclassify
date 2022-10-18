@@ -17,28 +17,20 @@ params:
   removeCorrelated:  !r TRUE
   cutoff:               0.7
   plot:              !r TRUE
-  semisupervised:    !r FALSE
+  l1lasso:    !r FALSE
   kClusters:         !r as.numeric(9)
-  genetic:           !r FALSE
-  boruta:            !r FALSE
   univariate:        !r TRUE
   unipValThresh:     !r 0.05
 
 ---
 ## Version: BINARY CLASSIFIER
 
-DOC: Usage - Rscript -e "rmarkdown::render( 'binary_analysis.RMD', output_file = './binary_exampleout.pdf', params = list( csvPath='exampledata.csv', target='survivalClass', positive_class='short', regexp='(VoxelNum|firstorder)', fixed_inputs='age',leaveOneOut=TRUE, nfold=5, foldID=1) )"
+DOC: Usage - Rscript -e " rmarkdown::render( 'binary_analysis.RMD', output_file = './binary_exampleout.pdf', params = list( csvPath='dicom/radiomicsoutwide.csv', outCsvName = 'exampledata_binary_withpredictions.csv',target='target', positive_class='High', regexp='(original_firstorder|original_glcm)', fixed_inputs=NULL,leaveOneOut=TRUE, nfold=NULL, foldID=NULL, rescale=FALSE, removeCorrelated=TRUE, plot=TRUE, l1lasso=TRUE, univariate=TRUE, unipValThresh=0.05,cutoff=.7 ) )"
 
 
-DOC: Debugging - set params in R shell:  params = list( csvPath='datalocation/pyradiomics_modeling.csv', target='MutationalStatus', positive_class='mut', inputs=NULL , leaveOneOut=TRUE, test_csv='datalocation/pyradiomicsout_experimentalcohort.csv', rescale=FALSE, removeCorrelated=TRUE, plot=TRUE, semisupervised=FALSE, kClusters=as.numeric(9), genetic=FALSE, boruta=TRUE, univariate=TRUE, unipValThresh=0.05 ),  copy block by block
-
-TODO: semi-supervised feature and genetic variable selection
+DOC: Debugging - set params in R shell:  params = list( csvPath='datalocation/pyradiomics_modeling.csv', target='MutationalStatus', positive_class='mut', inputs=NULL , leaveOneOut=TRUE, test_csv='datalocation/pyradiomicsout_experimentalcohort.csv', rescale=FALSE, removeCorrelated=TRUE, plot=TRUE, l1lasso=FALSE, kClusters=as.numeric(9), univariate=TRUE, unipValThresh=0.05 ),  copy block by block
 
 TODO: Compare to null model for imbalanced datasets
-
-
-
-
 
 DOC: boxplot  https://www.r-bloggers.com/about-boxplot/ : the bottom and top of the box are always the 25th and 75th percentile (the lower and upper quartiles, respectively), and the band near the middle of the box is always the 50th percentile (the median). But the ends of the whiskers can represent several possible alternative values...”
 In R’s default boxplot{graphics} code,
@@ -63,12 +55,15 @@ everything else is ignored
 
 
 ```{r libs, echo=FALSE, warning=FALSE}
-params
-options("width"=180)
+sessionInfo()
+# hack for debuggin
+myparams = params
+myparams 
+options("width"=80)
 # WIP reduce number of packages
 libs <- c("caret", "kernlab", "knitr", "e1071", "magrittr", "rpart", "nnet", "parallel",
-"randomForest", "MASS","cluster", "corrplot", "gridExtra","pROC")
-# "xgboost", "Boruta", "leaps", "ranger", "subselect", 
+"randomForest", "MASS","cluster", "corrplot", "gridExtra","pROC","glmnet")
+# "xgboost", "leaps", "ranger", "subselect", 
 
 invisible(lapply(libs, require,character.only=T))
 set.seed(25)
@@ -79,23 +74,23 @@ set.seed(25)
 ```{r Loading Data, echo=TRUE, warning=FALSE, message=TRUE}
 
 # load data
-datFull <- read.csv(params$csvPath)
+datFull <- read.csv(myparams$csvPath)
 
 #error check
-print(sprintf("target %s specified",params$target))
-if(is.null(params$target)) stop("No target specified")
+print(sprintf("target %s specified",myparams$target))
+if(is.null(myparams$target)) stop("No target specified")
 
-inputs <- union(params$fixed_inputs,
-                grep(params$regexp, names(datFull),value=T))
+inputs <- union(myparams$fixed_inputs,
+                grep(myparams$regexp, names(datFull),value=T))
 
 
-print(sprintf("%d rows and %d columns read from csv file: %s", nrow(datFull), ncol(datFull), params$csvPath))
+print(sprintf("%d rows and %d columns read from csv file: %s", nrow(datFull), ncol(datFull), myparams$csvPath))
 print(sprintf("%d inputs found with regexp parameter and fixed inputs", length(inputs)))
 
 
 # remove excluded inputs if defined
-if (!is.null(params$exclude_inputs)){
-  inputs <- union( setdiff(inputs, grep(params$exclude_inputs, names(datFull),value=T)), params$fixed_inputs)
+if (!is.null(myparams$exclude_inputs)){
+  inputs <- union( setdiff(inputs, grep(myparams$exclude_inputs, names(datFull),value=T)), myparams$fixed_inputs)
   print(sprintf("%d inputs remained after excluded inputs", length(inputs)))
 } else {
   print("No excluded_inputs from parameters")
@@ -103,7 +98,7 @@ if (!is.null(params$exclude_inputs)){
 
 
 # remove unnecessary columns and clean NAs
-datCrop <- datFull[,c(inputs,params$target)]
+datCrop <- datFull[,c(inputs,myparams$target)]
 
 
 #remove incomplete cases
@@ -122,13 +117,13 @@ dat <- datCompleteCases[, (colSums(is.na(datCompleteCases)) == 0 ) & (sapply(dat
 
 
 # subset based on validation set if provided
-if(!is.null(params$foldID)){
+if(!is.null(myparams$foldID)){
   set.seed(5)
 #TODO: translate validation indices back to full data frame
 
   if(!("validationFolds" %in% names(datFull)) ){
     datFull$validationFolds <- rep(NA,nrow(datFull))
-    validationFolds <- createFolds(dat[,params$target],k=params$nfold,list=F)
+    validationFolds <- createFolds(dat[,myparams$target],k=myparams$nfold,list=F)
 
     # add kfold indices to data matrix
     dat$validationFolds <- validationFolds
@@ -139,8 +134,8 @@ if(!is.null(params$foldID)){
     dat$validationFolds <- datFull[row.names(dat),"validationFolds"]
   }
 
-  validationidx <- which(validationFolds == params$foldID) #gives row numbers (not row names), this will not match the original (nonfiltered) data
-  print(paste("Leaving out ", params$validationID, " fold number ", params$foldID,sep=""))
+  validationidx <- which(validationFolds == myparams$foldID) #gives row numbers (not row names), this will not match the original (nonfiltered) data
+  print(paste("Leaving out ", myparams$validationID, " fold number ", myparams$foldID,sep=""))
 
   #bad code: order of these two lines matters
   validationdat <- dat[validationidx,]
@@ -149,20 +144,10 @@ if(!is.null(params$foldID)){
   dat <- dat[-validationidx,]
 }
 print("summary of classes")
-print(summary(dat[,params$target]))
+print(summary(dat[,myparams$target]))
 
 # Legacy code: old script uses dsraw instead of dat
 dsraw <- dat
-
-###### OLD DATA LOADING CODE  ###########
-#datamatrix <- read.csv(params$csvPath)
-#datamatrix$phenotype  = as.factor(ifelse(datamatrix[,"phenotype"] == 1 , "ACC", "ACA")) 
-#allinputs <- colnames(datamatrix)
-#inputcols <- allinputs [grep("original_*",colnames(datamatrix))]
-#if(!is.null(params$inputs)){
-#  print(" manually select columns")
-#  inputcols <- allinputs [params$inputs]
-#} 
 
 # Set model parameters
 modelparams <- list(#tree = list(method  = "rpart",
@@ -206,46 +191,46 @@ By default removes columns with zero variance and discards variables correlated 
 
 #coerce to factor if needed
 # careful with factor levels
-print(sprintf("target variable %s ",params$target) )  
+print(sprintf("target variable %s ",myparams$target) )  
 
 
 
-if(!is.factor(dsraw[,params$target])){
-  dsraw[params$target]<- as.factor(dsraw[,params$target])
+if(!is.factor(dsraw[,myparams$target])){
+  dsraw[myparams$target]<- as.factor(dsraw[,myparams$target])
   print("changed target variable to factor")
-  print(sprintf("initial level: %s", levels(dsraw[,params$target])))
+  print(sprintf("initial level: %s", levels(dsraw[,myparams$target])))
 
-  if(!is.null(params$positive_class)) {
-  positive_class <- params$positive_class
+  if(!is.null(myparams$positive_class)) {
+  positive_class <- myparams$positive_class
   } else {
-#   stop(params$positive_class)
+#   stop(myparams$positive_class)
   positive_class <- "case"
   }
 
-  levels(dsraw[,params$target]) <- c("control",positive_class)  
-  print(sprintf("reassigned target levels to: %s", levels(dsraw[,params$target])))
+  levels(dsraw[,myparams$target]) <- c("control",positive_class)  
+  print(sprintf("reassigned target levels to: %s", levels(dsraw[,myparams$target])))
 }
 
-if(!is.null(params$positive_class)) {
-  positive_class <- params$positive_class
+if(!is.null(myparams$positive_class)) {
+  positive_class <- myparams$positive_class
 } else {
-  positive_class <- levels(dsraw[,params$target])[2]
+  positive_class <- levels(dsraw[,myparams$target])[2]
   print(sprintf("assuming positive class is: %s", positive_class))
 }
 
 #check for positive class in factor levels
-if(!(positive_class %in% levels(dsraw[,params$target])) ){
-  stop(sprintf("positive class %s  not found in levels of target variable %s", positive_class, levels(dsraw[,params$target])))
+if(!(positive_class %in% levels(dsraw[,myparams$target])) ){
+  stop(sprintf("positive class %s  not found in levels of target variable %s", positive_class, levels(dsraw[,myparams$target])))
 }
 
 
 #check if binary
-if(dsraw[,params$target] %>% levels %>% length !=2){
+if(dsraw[,myparams$target] %>% levels %>% length !=2){
     stop("Target must have two levels")
 }   
 
 #rename positive class if needed
-#levels(dsraw[,params$target])<- c("control","case")
+#levels(dsraw[,myparams$target])<- c("control","case")
 #positive_class <- "case"
 
 
@@ -259,36 +244,25 @@ if(dsraw[,params$target] %>% levels %>% length !=2){
 #dsraw <- dsraw[complete.cases(dsraw),colSums(is.na(dsraw))<nrow(dsraw)]
 
 #reduced input set
-#inputs <- setdiff(names(dsraw),params$target)
+#inputs <- setdiff(names(dsraw),myparams$target)
 
-ppMethods <- "zv"
-if(params$rescale)          {ppMethods <- c(ppMethods,"center","scale")}
-if(params$removeCorrelated) {ppMethods <- c(ppMethods, "corr")}
+#ppMethods <- "zv"
+#if(myparams$rescale)          {ppMethods <- c(ppMethods,"center","scale")}
+#if(myparams$removeCorrelated) {ppMethods <- c(ppMethods, "corr")}
 
 #first remove zero variance (caret bug workaround)
 pp <- preProcess(dsraw[inputs], method = "zv")
-ds <- cbind(predict(pp, newdata = dsraw[inputs]),dsraw[params$target])
+ds <- cbind(predict(pp, newdata = dsraw[inputs]),dsraw[myparams$target])
 
 # reduce input set after correlation reduction
-#Filteredinputs <- setdiff(names(ds), params$target)
-Filteredinputs <- names(ds)[names(ds) %in% inputs]
-pp <- preProcess(predict(pp, newdata = ds[Filteredinputs]), method = ppMethods, cutoff=0.8)
+FilteredinputsZeroVar <- names(ds)[names(ds) %in% inputs]
+cor_matrix <- cor(ds[FilteredinputsZeroVar]) 
+cor_high <- findCorrelation(cor_matrix, myparams$cutoff)
+high_cor_remove <- row.names(cor_matrix)[cor_high] 
 
 #get reduced input set/dataset
-ds <- cbind(predict(pp, newdata = ds[Filteredinputs]),ds[params$target])
-Filteredinputs <- setdiff(names(ds), params$target)
-
-
-# WIP: Clustering for semi-supervised analysis with kClusters
-if(params$semisupervised){
-cat(paste("Clustering into ", params$kClusters, " clusters... By unsupervised random forest\n\n"))
-rfUL <- randomForest(x=ds[,Filteredinputs],
-                     ntree = 500,
-                     replace=FALSE)
-ds <- cbind(ds, clusters.conv = pam(1-rfUL$proximity, k = params$kClusters, diss = TRUE, cluster.only = TRUE))
-ds$clusters.conv <- as.factor(ds$clusters.conv) #change to factor not int
-Filteredinputs <- setdiff(names(ds),params$target)
-}
+Filteredinputs <- setdiff(FilteredinputsZeroVar, high_cor_remove )
+ds <- cbind(ds[Filteredinputs],ds[myparams$target])
 
 ```
 
@@ -302,7 +276,7 @@ pp
 
 ## Variable Selection: 
 
-Default is Boruta and Wilcoxon test (P value cutoff `r params$unipValThresh`/ `r length(Filteredinputs)`). Wilcoxon currently only tests numeric input variables
+Default is Wilcoxon test (P value cutoff `r myparams$unipValThresh`/ `r length(Filteredinputs)`). Wilcoxon currently only tests numeric input variables
 
 ```{r Performing Variable Selection, echo=FALSE, warning=FALSE, fig.width=8, fig.height=8}
 
@@ -322,38 +296,34 @@ if(Filteredinputs %>% length <= 30){
    print(" ")
   }
 
-#genetic
-if(params$genetic){
-gen <- genetic(cor(ds[,Filteredinputs]), 4) #manually selected 4 outputs
-variableSelections$genetic <- names(ds[,Filteredinputs])[gen$bestsets]
-print("Genetic variable selections:")
-print(variableSelections$genetic)
 
-correlations <- cor(Filter(is.numeric,ds[variableSelections$genetic]), use="pairwise")
-   corrord <- order(correlations[1,])
-   correlations <- correlations[corrord,corrord]
-   corrplot(correlations,
-   title = "Correlations for Genetic method",
-   mar = c(1,2,2,0)  )
-
+# l1 regression
+if(myparams$l1lasso){
+lassodat = na.omit(ds)
+glmnetfit <- cv.glmnet(as.matrix(lassodat[Filteredinputs]) , as.numeric(unlist(lassodat[myparams$target])), alpha = 1.0, nlambda = 100,family = "binomial", intercept = FALSE)
+plot(glmnetfit )
+lassocoef = as.matrix(coef(glmnetfit , s = "lambda.min"))
+lassonames = rownames(lassocoef ) 
+# WIP - filter 0 coeff
+variableSelections[["lasso"]] <- lassonames[-1] 
 }
 
 #univariate (currently only works for numeric variables)
-if(params$univariate){
+if(myparams$univariate){
 
 nums <- sapply(ds[Filteredinputs],is.numeric)
 nums <- names(nums)[nums] #get names not T/F
 pvals <- lapply(nums,
        function(var) {          
-           formula    <- as.formula(paste(var, "~", params$target))
-           test <- wilcox.test(formula, ds[, c(var, params$target)])
+           formula    <- as.formula(paste(var, "~", myparams$target))
+           test <- wilcox.test(formula, ds[, c(var, myparams$target)])
            test$p.value #could use 1-pchisq(test$statistic, df= test$parameter)
        })
 names(pvals) <- nums
 
-variableSelections$univariate <- setdiff(Filteredinputs, nums[pvals > params$unipValThresh]) #discard variables above threshold
+variableSelections$univariate <- setdiff(Filteredinputs, nums[pvals > myparams$unipValThresh]) #discard variables above threshold
 
-if(variableSelections$univariate %>% length > 1 & params$plot){
+if(variableSelections$univariate %>% length > 1 & myparams$plot){
 correlations <- cor(Filter(is.numeric,ds[variableSelections$univariate]), use="pairwise")
 #   corrord <- order(correlations[1,])
 #   correlations <- correlations[corrord,corrord]
@@ -365,7 +335,7 @@ correlations <- cor(Filter(is.numeric,ds[variableSelections$univariate]), use="p
 
 #par(mfrow=c(length(variableSelections$univariate),1))
 for(iii in 1:length(variableSelections$univariate)){
-boxplot( as.formula( paste(variableSelections$univariate[[iii]], "~", params$target) ),
+boxplot( as.formula( paste(variableSelections$univariate[[iii]], "~", myparams$target) ),
          data=ds,
          ylab=paste(variableSelections$univariate[[iii]]),
          main=sprintf("Wilcoxon Rank Sum test P = %0.3e",pvals[variableSelections$univariate[[iii]]]),
@@ -373,58 +343,17 @@ boxplot( as.formula( paste(variableSelections$univariate[[iii]], "~", params$tar
        )
 
  univariable= ds[variableSelections$univariate[[iii]]]
- cat(setdiff(levels(ds[,params$target]),params$positive_class), 'summary\n')
- print(summary(univariable[which(ds[,params$target] != params$positive_class ),]))
+ cat(setdiff(levels(ds[,myparams$target]),myparams$positive_class), 'summary\n')
+ print(summary(univariable[which(ds[,myparams$target] != myparams$positive_class ),]))
  cat('\n')
- cat(params$positive_class, 'summary\n')
- print(summary(univariable[which(ds[,params$target] == params$positive_class ),]))
+ cat(myparams$positive_class, 'summary\n')
+ print(summary(univariable[which(ds[,myparams$target] == myparams$positive_class ),]))
  cat('\n')
 }# end boxplot
 } #end if >0 variables
-} #end if params$univariate
+} #end if myparams$univariate
 
 
-
-#boruta
-if(params$boruta){
-bor <- Boruta(x=ds[,Filteredinputs], y=ds[,params$target], pValue=.35)
-variableSelections$boruta <- names(ds[,Filteredinputs])[which(bor$finalDecision == "Confirmed")]
-
-print("Finished Boruta variable selection")
-print(bor)
-
-
-if(length(variableSelections$boruta) > 1 & params$plot){
-
-correlations <- cor(Filter(is.numeric,ds[variableSelections$boruta]), use="pairwise")
-#   corrord <- order(correlations[1,])
-#   correlations <- correlations[corrord,corrord]
-   corrplot(correlations,
-   title = "Correlations for Boruta method",
-   mar = c(1,2,2,0),
-   order = "hclust"  )
-}
-
-
-if(length(variableSelections$boruta) > 0 & params$plot){
-#par(mfrow=c(length(variableSelections$boruta),1))
-for(iii in 1:length(variableSelections$boruta)){
-boxplot( as.formula( paste(variableSelections$boruta[[iii]], "~", params$target) ),
-         data=ds,
-         ylab=paste(variableSelections$boruta[[iii]]),
-         mar=c(12,1,0,0),
-         main=sprintf("Wilcoxon Rank Sum test P = %0.3e",pvals[variableSelections$boruta[[iii]]])
-       )
- borutavariable= ds[variableSelections$boruta[[iii]]]
- cat(setdiff(levels(ds[,params$target]),params$positive_class), 'summary\n')
- print(summary(borutavariable[which(ds[,params$target] != params$positive_class ),]))
- cat('\n')
- cat(params$positive_class, 'summary\n')
- print(summary(borutavariable[which(ds[,params$target] == params$positive_class ),]))
- cat('\n')
-}# end boxplots
-} #end if >0 variables
-} #end if params$boruta
 
 
 ```
@@ -433,7 +362,7 @@ boxplot( as.formula( paste(variableSelections$boruta[[iii]], "~", params$target)
 ```{r Univariate selection, echo=FALSE}
 
 #print results and error handle if no significant variables
-if(params$univariate){
+if(myparams$univariate){
   if(length(variableSelections$univariate) == 0){ 
     cat(sprintf("No P values < %.5f\n", 0.2/length(nums)))
     variableSelections$univariate <- NULL
@@ -453,7 +382,7 @@ if(params$univariate){
 
 
 # Modeling using `r names(modelparams)`.
-Use Leave-one-out cross validation: `r params$leaveOneOut`
+Use Leave-one-out cross validation: `r myparams$leaveOneOut`
 
 
 ```{r Modeling (may take some time), echo=FALSE, warning=FALSE, message=FALSE}
@@ -461,12 +390,12 @@ Use Leave-one-out cross validation: `r params$leaveOneOut`
 #WIP: consider using metric=roc for binary classification
 
 #Modeling, dataparams are arguements to caret::train
-modelformula <- as.formula(paste(params$target,"~."))
+modelformula <- as.formula(paste(myparams$target,"~."))
 dataparams   <- list(form = modelformula,
-#                      data = ds[,c(params$target,Filteredinputs)],
+#                      data = ds[,c(myparams$target,Filteredinputs)],
                       metric="Accuracy", #other option: AUC?
                       trControl=trainControl(allowParallel  = T,
-                                             method = ifelse(params$leaveOneOut,"LOOCV", "repeatedcv"),
+                                             method = ifelse(myparams$leaveOneOut,"LOOCV", "repeatedcv"),
                                              classProbs=TRUE,
                                              #returnResamp = "final",
                                              #number = 10,
@@ -480,7 +409,7 @@ models    <- list()
 acc <- list()
 
 for(jjj in 1:length(variableSelections)){
-modeldata  <- ds[,c(params$target,variableSelections[[jjj]])]
+modeldata  <- ds[,c(myparams$target,variableSelections[[jjj]])]
 
 # RE seeding: Hawthorn et al, "The design and analysis of benchmark experiments" (2005)
 
@@ -505,7 +434,7 @@ acc[[model_name]] <- max(models[[model_name]]$results[metric])
 
 
 ```{r Finding best model and plotting, echo = FALSE, fig.width=8, fig.height=10}
-if(params$leaveOneOut){
+if(myparams$leaveOneOut){
   maxacc <- max(unlist(acc))
   maxmodels <- names(which(acc==maxacc))
 
@@ -546,7 +475,7 @@ lapply(maxmodels, function(x) models[[x]])
 ```
 
 ```{r if LOOCV CV plot ROC,echo = FALSE, fig.width=8, fig.height=10}
-if(params$leaveOneOut){
+if(myparams$leaveOneOut){
   print(paste("Building ROC Curve for model", maxmodels[[1]]))
   #recursiely subset
   bestmod <- models[[maxmodels[[1]]]] #pick first by default
@@ -558,12 +487,12 @@ if(params$leaveOneOut){
     results <- subset(results, results[,names(modpars)[kkk]]==modpars[,kkk])
   }
   
-  print(caret::confusionMatrix(results$pred, reference = results$obs, positive = params$positive_class))
+  print(caret::confusionMatrix(results$pred, reference = results$obs, positive = myparams$positive_class))
   ROC1 <- roc(response=results$obs,
-              predictor = results[,params$positive_class],
+              predictor = results[,myparams$positive_class],
               levels = c(setdiff(
-                levels(results$obs), params$positive_class),
-                         params$positive_class))
+                levels(results$obs), myparams$positive_class),
+                         myparams$positive_class))
   print(ROC1)
   plot(ROC1, print.auc=T, print.auc.y = 0.2, print.auc.x = 0.5)
   # results is a frame with LOOCV data
@@ -578,11 +507,11 @@ if(params$leaveOneOut){
 #write cross-validation predictions
 
 
-if(!is.null(params$foldID)){
-  trainingpredname <- paste("trainindPreds_exceptfold",params$foldID,sep="")
+if(!is.null(myparams$foldID)){
+  trainingpredname <- paste("trainindPreds_exceptfold",myparams$foldID,sep="")
 
   if(trainingpredname %in% names(datFull)){
-    print(sprintf("cross-validation predictions for fold %s already found, compare differences below:", params$foldID))
+    print(sprintf("cross-validation predictions for fold %s already found, compare differences below:", myparams$foldID))
     print("existing predictions (may be out of order):")
     kable(data.frame(existing=datFull[rownames(dat),trainingpredname],new=as.character(results$pred)))
 
@@ -599,43 +528,43 @@ if(!is.null(params$foldID)){
 
 
 # write validation predictions
-if(!is.null(params$foldID)){
+if(!is.null(myparams$foldID)){
 
-predname <- paste("validationPreds_fold",params$foldID,sep="")
+predname <- paste("validationPreds_fold",myparams$foldID,sep="")
 
 
   if(predname %in% names(datFull)){
-    print(sprintf("Validation predictions for fold %s already found, compare differences below:", params$foldID))
+    print(sprintf("Validation predictions for fold %s already found, compare differences below:", myparams$foldID))
     print("existing predictions:")
     print(datFull$predname)
   } else {
 
 datFull[predname] <- NA
-datFull[which(datFull$validationFolds == params$foldID), predname] <- validationpreds
+datFull[which(datFull$validationFolds == myparams$foldID), predname] <- validationpreds
   }
 }
 
 print("summary of predictions:")
 
-if(!is.null(params$foldID)){
-  kable(datFull[,c(params$target,predname,trainingpredname)])
+if(!is.null(myparams$foldID)){
+  kable(datFull[,c(myparams$target,predname,trainingpredname)])
 } else {
-  kable(datFull[,c(params$target,trainingpredname)])
+  kable(datFull[,c(myparams$target,trainingpredname)])
 }
 
 
-if(is.null(params$outCsvName)){
+if(is.null(myparams$outCsvName)){
   print("No output csv file specified")
 
 # Option to auto generate csv name
-#  if(!is.null(params$foldID)){
-#    outCsv <- sub(".csv",sprintf("_Fold%s_validation.csv",params$foldID),basename(params$csvPath)) 
+#  if(!is.null(myparams$foldID)){
+#    outCsv <- sub(".csv",sprintf("_Fold%s_validation.csv",myparams$foldID),basename(myparams$csvPath)) 
 #  } else {
-#    outCsv <- sub(".csv","_no_validation.csv",basename(params$csvPath))
+#    outCsv <- sub(".csv","_no_validation.csv",basename(myparams$csvPath))
 #  }
 
 } else {
-    outCsv <- params$outCsvName
+    outCsv <- myparams$outCsvName
 }
 
 print(sprintf("writing csv with validation predictions to %s", outCsv))
@@ -649,15 +578,15 @@ write.csv(datFull,outCsv,row.names=F)
 ## Testing best model on external validataion cohort:
 ```{r experimental cohort, echo = FALSE}
 
-if(!is.null(params$test_csv)){
-cat("Reading validation dataset:\n", params$test_csv)
-full_data <- read.csv(params$test_csv)
+if(!is.null(myparams$test_csv)){
+cat("Reading validation dataset:\n", myparams$test_csv)
+full_data <- read.csv(myparams$test_csv)
 
 bestModelInputs <- names(bestmod$trainingData[-1])
 
 cat(c("Best model using inputs:", paste(bestModelInputs,collapse="\n"),"\n"))
 
-sub_data <- full_data[,c(bestModelInputs, params$target)]
+sub_data <- full_data[,c(bestModelInputs, myparams$target)]
 
 cat(sprintf("Number of cases ommitted for missing values %d out of %d\n", sum(!complete.cases(sub_data)), nrow(sub_data)))
 
