@@ -67,8 +67,8 @@ params
 options("width"=180)
 # WIP reduce number of packages
 libs <- c("caret", "kernlab", "knitr", "e1071", "magrittr", "rpart", "nnet", "parallel",
-"randomForest", "xgboost", "Boruta", "leaps", "MASS",
-"ranger", "cluster", "subselect", "corrplot", "gridExtra","pROC")
+"randomForest", "MASS","cluster", "corrplot", "gridExtra","pROC")
+# "xgboost", "Boruta", "leaps", "ranger", "subselect", 
 
 invisible(lapply(libs, require,character.only=T))
 set.seed(25)
