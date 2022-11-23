@@ -7,6 +7,8 @@ CONTRASTLIST = Art
 raw: $(foreach idc,$(CONTRASTLIST),$(addprefix GrowProcessed/,$(addsuffix /$(idc).raw.nii.gz,$(LISTUID)))) 
 #truth: $(addprefix GrowProcessed/,$(addsuffix /Bl.raw.nii.gz,$(LISTUID))) $(addprefix GrowProcessed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
 truth:  $(addprefix GrowProcessed/,$(addsuffix /Normal.raw.nii.gz,$(LISTUID)))
+pancreas:  $(addprefix GrowProcessed/,$(addsuffix /Pancreas.raw.nii.gz,$(LISTUID)))
+qa:  $(addprefix GrowProcessed/,$(addsuffix /qa,$(LISTUID)))
 artdiff: $(addprefix GrowProcessed/,$(addsuffix /Artdiff.nii.gz,$(LISTUID))) 
 lesionmask: $(addprefix GrowProcessed/,$(addsuffix /lesionmask.nii.gz,$(LISTUID))) 
 lesionrad: $(addprefix GrowProcessed/,$(addsuffix /lesionrad.nii.gz,$(LISTUID))) 
@@ -19,6 +21,8 @@ viewinfo: $(addprefix GrowProcessed/,$(addsuffix /viewinfo,$(LISTUID)))
 dicom/radiomicsgrowout.csv: dicom/wideclassificationgrowrad.csv 
 	pyradiomics  $< -o $@   -v  5  -j 8  -p Params.yaml -f csv
 
+GrowProcessed/%/qa: GrowProcessed/%/Art.raw.nii.gz GrowProcessed/%/Pancreas.raw.nii.gz
+	c3d $^ -lstat
 dbg:
 	@echo $(LISTUID)    
 	@echo $(LISTDELTA)    
@@ -29,6 +33,11 @@ GrowProcessed/%/Art.raw.nii.gz:
 GrowProcessed/%/Artdiff.nii.gz: GrowProcessed/%/Art.raw.nii.gz GrowProcessed/%/Normal.raw.nii.gz
 	python3 pdacdiff.py --image=$< --mask=$(word 2,$^) --output=$@
 
+GrowProcessed/%/Pancreas.raw.nii.gz: GrowProcessed/%/Art.raw.nii.gz
+	mkdir -p $(@D)
+	-plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input "/Radonc/Cancer Physics and Engineering Lab/David Fuentes/High and Low delta PDAC classification/D2 (n=90) Gemcitabine based chemoradiation/GROW BY 3.0 mm -- 15 high and 15 low (new)/LOW/$*"/PANCREAS*.dcm
+	-plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input "/Radonc/Cancer Physics and Engineering Lab/David Fuentes/High and Low delta PDAC classification/D2 (n=90) Gemcitabine based chemoradiation/GROW BY 3.0 mm -- 15 high and 15 low (new)/HIGH/$*"/PANCREAS*.dcm
+	echo vglrun itksnap -g $< -s $@
 GrowProcessed/%/Bl.raw.nii.gz: GrowProcessed/%/Art.raw.nii.gz
 	mkdir -p $(@D)
 	plastimatch convert --fixed $(@D)/Art.raw.nii.gz  --output-labelmap $@ --output-ss-img $(@D)/ss.nii.gz --output-ss-list $(@D)/ss.txt --output-dose-img $(@D)/dose.nii.gz --input   "$(shell python getgrowdb.py --uid=$* --bl )"

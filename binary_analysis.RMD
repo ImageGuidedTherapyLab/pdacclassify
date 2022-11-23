@@ -25,12 +25,8 @@ params:
 ---
 ## Version: BINARY CLASSIFIER
 
-DOC: Usage - Rscript -e " rmarkdown::render( 'binary_analysis.RMD', output_file = './binary_exampleout.pdf', params = list( csvPath='dicom/radiomicsoutwide.csv', outCsvName = 'exampledata_binary_withpredictions.csv',target='target', positive_class='High', regexp='(original_firstorder|original_glcm)', fixed_inputs=NULL,leaveOneOut=TRUE, nfold=NULL, foldID=NULL, rescale=FALSE, removeCorrelated=TRUE, plot=TRUE, l1lasso=TRUE, univariate=TRUE, unipValThresh=0.05,cutoff=.7 ) )"
+DOC: Usage - Rscript -e " rmarkdown::render( 'binary_analysis.RMD', output_file = './binary_exampleout.pdf', params = list( csvPath='dicom/radiomicsout.csv', outCsvName = 'exampledata_binary_withpredictions.csv',target='fibbin', positive_class='other', regexp='(original_firstorder|original_glcm|original_glrlm|original_glszm)', fixed_inputs=NULL,leaveOneOut=TRUE, nfold=NULL, foldID=NULL, rescale=FALSE, removeCorrelated=TRUE, plot=TRUE, l1lasso=TRUE, univariate=TRUE, unipValThresh=0.05,cutoff=.7 ) )"
 
-
-DOC: Debugging - set params in R shell:  params = list( csvPath='datalocation/pyradiomics_modeling.csv', target='MutationalStatus', positive_class='mut', inputs=NULL , leaveOneOut=TRUE, test_csv='datalocation/pyradiomicsout_experimentalcohort.csv', rescale=FALSE, removeCorrelated=TRUE, plot=TRUE, l1lasso=FALSE, kClusters=as.numeric(9), univariate=TRUE, unipValThresh=0.05 ),  copy block by block
-
-TODO: Compare to null model for imbalanced datasets
 
 DOC: boxplot  https://www.r-bloggers.com/about-boxplot/ : the bottom and top of the box are always the 25th and 75th percentile (the lower and upper quartiles, respectively), and the band near the middle of the box is always the 50th percentile (the median). But the ends of the whiskers can represent several possible alternative values...”
 In R’s default boxplot{graphics} code,
@@ -97,6 +93,10 @@ if (!is.null(myparams$exclude_inputs)){
 }
 
 
+# need binary vars
+#datFull <- cbind(
+#    fibbin = as.factor(ifelse(datFull[,"fibrosis"] <= 1                  , "zeroone", "other")),
+#    datFull )
 # remove unnecessary columns and clean NAs
 datCrop <- datFull[,c(inputs,myparams$target)]
 
@@ -296,21 +296,6 @@ if(Filteredinputs %>% length <= 30){
    print(" ")
   }
 
-
-# l1 regression
-if(myparams$l1lasso){
-lassodat = na.omit(ds)
-glmnetfit <- cv.glmnet(as.matrix(lassodat[Filteredinputs]) , as.numeric(unlist(lassodat[myparams$target])), alpha = 1.0, nlambda = 100,family = "binomial", intercept = FALSE)
-plot(glmnetfit )
-lassocoef = as.matrix(coef(glmnetfit , s = "lambda.min"))
-lassonames = rownames(lassocoef ) 
-# WIP - filter 0 coeff
-variableSelections[["lasso"]] <- lassonames[-1] 
-}
-
-#univariate (currently only works for numeric variables)
-if(myparams$univariate){
-
 nums <- sapply(ds[Filteredinputs],is.numeric)
 nums <- names(nums)[nums] #get names not T/F
 pvals <- lapply(nums,
@@ -320,6 +305,51 @@ pvals <- lapply(nums,
            test$p.value #could use 1-pchisq(test$statistic, df= test$parameter)
        })
 names(pvals) <- nums
+```
+
+```{r Lasso Section (if TRUE), echo=FALSE, warning=FALSE, fig.width=8, fig.height=8}
+# l1 regression
+if(myparams$l1lasso){
+lassodat = na.omit(ds)
+glmnetfit <- cv.glmnet(as.matrix(lassodat[Filteredinputs]) , as.numeric(unlist(lassodat[myparams$target])), alpha = 1.0, nlambda = 100,family = "binomial", intercept = FALSE)
+plot(glmnetfit )
+lassocoef = as.matrix(coef(glmnetfit , s = "lambda.min"))
+lassonames = rownames(lassocoef ) 
+# WIP - filter 0 coeff
+variableSelections[["lasso"]] <- lassonames[abs(lassocoef) > 0]
+
+if(variableSelections$lasso %>% length > 1 & myparams$plot){
+correlations <- cor(Filter(is.numeric,ds[variableSelections$lasso]), use="pairwise")
+#   corrord <- order(correlations[1,])
+#   correlations <- correlations[corrord,corrord]
+   corrplot(correlations,
+   title = "Correlations for Lasso method",
+   mar = c(1,2,2,0),
+   order="hclust"  )
+   
+
+for(iii in 1:length(variableSelections$lasso)){
+boxplot( as.formula( paste(variableSelections$lasso[[iii]], "~", myparams$target) ),
+         data=ds,
+         ylab=paste(variableSelections$lasso[[iii]]),
+         main=sprintf("Wilcoxon Rank Sum test P = %0.3e",pvals[variableSelections$lasso[[iii]]]),
+         mar=c(12,1,0,0)
+       )
+
+ univariable= ds[variableSelections$lasso[[iii]]]
+ cat(setdiff(levels(ds[,myparams$target]),myparams$positive_class), 'summary\n')
+ print(summary(univariable[which(ds[,myparams$target] != myparams$positive_class ),]))
+ cat('\n')
+ cat(myparams$positive_class, 'summary\n')
+ print(summary(univariable[which(ds[,myparams$target] == myparams$positive_class ),]))
+ cat('\n')
+}# end boxplot
+} #end if >0 variables
+}
+
+#univariate (currently only works for numeric variables)
+if(myparams$univariate){
+
 
 variableSelections$univariate <- setdiff(Filteredinputs, nums[pvals > myparams$unipValThresh]) #discard variables above threshold
 
@@ -408,6 +438,8 @@ caretparams      <- lapply(modelparams,function(x) c(dataparams,x))
 models    <- list()
 acc <- list()
 
+```
+```{r Modeling part duex, echo=FALSE, warning=FALSE, message=FALSE}
 for(jjj in 1:length(variableSelections)){
 modeldata  <- ds[,c(myparams$target,variableSelections[[jjj]])]
 
@@ -425,10 +457,7 @@ metric <- models[[model_name]]$metric
 acc[[model_name]] <- max(models[[model_name]]$results[metric])
 
 }
-
-
 }
-
 
 ```
 
